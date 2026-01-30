@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parrilla y Cocina | El Mejor Asado para tu Curso</title>
+    <!-- Favicon de Asado (Carne) -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍖</text></svg>">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome para Iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'brand-red': '#E63946',
+                        'brand-dark': '#1D3557',
+                        'brand-orange': '#F4A261',
+                        'brand-yellow': '#E9C46A',
+                    },
+                    fontFamily: {
+                        sans: ['Poppins', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .scroll-smooth { scroll-behavior: smooth; }
+        .insta-overlay {
+            background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+        }
+        .hero-bg {
+            background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('https://images.unsplash.com/photo-1555939594-58d7cb561ad1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80');
+            background-size: cover;
+            background-position: center;
+        }
+    </style>
+</head>
+<body class="font-sans text-gray-800 scroll-smooth bg-gray-50">
+
+    <!-- Navbar -->
+    <nav class="bg-white shadow-md fixed w-full z-50">
+        <div class="container mx-auto px-6 py-3 flex justify-between items-center">
+            <a href="#" class="text-2xl font-bold text-brand-red flex items-center gap-2">
+                🔥 Parrilla y Cocina
+            </a>
+            
+            <!-- Mobile Menu Button -->
+            <div class="md:hidden">
+                <button onclick="toggleMenu()" class="text-gray-600 hover:text-brand-red focus:outline-none">
+                    <i class="fas fa-bars text-2xl"></i>
+                </button>
+            </div>
+
+            <!-- Desktop Menu -->
+            <div class="hidden md:flex items-center space-x-8">
+                <a href="#inicio" class="text-gray-700 hover:text-brand-red font-medium transition">Inicio</a>
+                <a href="#servicios" class="text-gray-700 hover:text-brand-red font-medium transition">Servicios</a>
+                <a href="#menu" class="text-gray-700 hover:text-brand-red font-medium transition">Menú</a>
+                <a href="#galeria" class="text-gray-700 hover:text-brand-red font-medium transition">Instagram</a>
+                <a href="#contacto" class="bg-brand-red text-white px-5 py-2 rounded-full font-bold hover:bg-red-700 transition shadow-lg transform hover:scale-105 flex items-center gap-2">
+                    <i class="fas fa-hand-holding-dollar"></i> Cotizar Ahora
+                </a>
+            </div>
+        </div>
+        
+        <!-- Mobile Menu Dropdown -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white border-t p-4">
+            <a href="#inicio" class="block py-2 text-gray-700 hover:text-brand-red" onclick="toggleMenu()">Inicio</a>
+            <a href="#servicios" class="block py-2 text-gray-700 hover:text-brand-red" onclick="toggleMenu()">Servicios</a>
+            <a href="#menu" class="block py-2 text-gray-700 hover:text-brand-red" onclick="toggleMenu()">Menú</a>
+            <a href="#galeria" class="block py-2 text-gray-700 hover:text-brand-red" onclick="toggleMenu()">Galería</a>
+            <a href="#contacto" class="block py-2 text-brand-red font-bold" onclick="toggleMenu()">Cotizar</a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header id="inicio" class="hero-bg h-screen flex items-center justify-center text-center px-4 pt-16">
+        <div class="max-w-4xl mx-auto text-white">
+            <div class="inline-block bg-brand-orange text-white px-4 py-1 rounded-full text-sm font-bold mb-4 shadow-md animate-bounce">
+                🎓 ¡Temporada de Paseos 2024-2025!
+            </div>
+            <h1 class="text-4xl md:text-6xl font-bold mb-6 leading-tight">
+                El Mejor Asado para tu <span class="text-brand-yellow">Paseo de Curso</span> 🍖🔥
+            </h1>
+            <p class="text-xl md:text-2xl mb-8 font-light">
+                Relájate y disfruta. Nosotros ponemos la parrilla, la carne y la buena onda. ¡Servicio completo para colegios!
+            </p>
+            <div class="flex flex-col md:flex-row gap-4 justify-center">
+                <a href="#contacto" class="bg-brand-red hover:bg-red-700 text-white px-8 py-4 rounded-full text-lg font-bold transition transform hover:-translate-y-1 shadow-xl">
+                    Solicitar Presupuesto 🚌
+                </a>
+                <a href="https://www.instagram.com/parrilla_y_cocina_/" target="_blank" class="bg-white hover:bg-gray-100 text-gray-900 px-8 py-4 rounded-full text-lg font-bold transition flex items-center justify-center gap-2">
+                    <i class="fab fa-instagram text-pink-600 text-xl"></i> Ver Fotos
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Por Qué Elegirnos -->
+    <section id="servicios" class="py-20 bg-white">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold text-brand-dark mb-4">¿Por qué elegir Parrilla y Cocina? 🤔</h2>
+                <div class="w-24 h-1 bg-brand-red mx-auto rounded"></div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
+                <!-- Feature 1 -->
+                <div class="bg-gray-50 p-8 rounded-2xl shadow-lg hover:shadow-xl transition text-center border-b-4 border-brand-red">
+                    <div class="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <span class="text-3xl">👨‍🍳</span>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-brand-dark">Expertos Parrilleros</h3>
+                    <p class="text-gray-600">
+                        Nuestro equipo sabe exactamente el punto de la carne. ¡Nadie se queda con hambre y todo sale a tiempo!
+                    </p>
+                </div>
+                
+                <!-- Feature 2 -->
+                <div class="bg-gray-50 p-8 rounded-2xl shadow-lg hover:shadow-xl transition text-center border-b-4 border-brand-orange">
+                    <div class="bg-orange-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <span class="text-3xl">🥗</span>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-brand-dark">Opciones para Todos</h3>
+                    <p class="text-gray-600">
+                        ¿Vegetarianos? ¿Veganos? ¡Sin problema! Tenemos menús inclusivos para que todo el curso disfrute.
+                    </p>
+                </div>
+                
+                <!-- Feature 3 -->
+                <div class="bg-gray-50 p-8 rounded-2xl shadow-lg hover:shadow-xl transition text-center border-b-4 border-brand-yellow">
+                    <div class="bg-yellow-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <span class="text-3xl">⚡</span>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-brand-dark">Servicio Full</h3>
+                    <p class="text-gray-600">
+                        Llevamos todo: parrillas, carbón, platos, cubiertos y salsas. Ustedes solo traigan las ganas de pasarlo bien.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Menú Section -->
+    <section id="menu" class="py-20 bg-brand-dark text-white relative overflow-hidden">
+        <!-- Background decorative elements -->
+        <div class="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-brand-red rounded-full opacity-20 blur-3xl"></div>
+        <div class="absolute bottom-0 left-0 -ml-20 -mb-20 w-64 h-64 bg-brand-yellow rounded-full opacity-20 blur-3xl"></div>
+
+        <div class="container mx-auto px-6 relative z-10">
+            <div class="text-center mb-16">
+                <span class="text-brand-yellow font-bold tracking-wider uppercase text-sm">Nuestros Packs</span>
+                <h2 class="text-3xl md:text-5xl font-bold mt-2">¡Para Chuparse los Dedos! 😋</h2>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Pack 1 -->
+                <div class="bg-white text-gray-800 rounded-xl overflow-hidden shadow-2xl transform hover:-translate-y-2 transition duration-300">
+                    <div class="h-48 overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Choripan" class="w-full h-full object-cover">
+                    </div>
+                    <div class="p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-2xl font-bold text-brand-red">Pack Básico</h3>
+                            <span class="bg-gray-200 text-gray-700 text-xs font-bold px-2 py-1 rounded">Popular</span>
+                        </div>
+                        <ul class="space-y-3 mb-6">
+                            <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> Choripán (Longaniza Artesanal)</li>
+                            <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> Lomo Vetado / Asiento</li>
+                            <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> Papas Cocidas o Ensalada Chilena</li>
+                            <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> Pebre y Pan Amasado</li>
+                        </ul>
+                        <button onclick="window.location.href='#contacto'" class="w-full block bg-gray-900 text-white text-center py-3 rounded-lg font-bold hover:bg-brand-red transition">Cotizar Este Pack</button>
+                    </div>
+                </div>
+
+                <!-- Pack 2 -->
+                <div class="bg-white text-gray-800 rounded-xl overflow-hidden shadow-2xl transform hover:-translate-y-2 transition duration-300 border-4 border-brand-yellow relative">
+                    <div class="absolute top-0 right-0 bg-brand-yellow text-brand-dark text-xs font-bold px-3 py-1 rounded-bl-lg z-10">MEJOR OPCIÓN</div>
+                    <div class="h-48 overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1558030006-450675393462?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Asado Full" class="w-full h-full object-cover">
+                    </div>
+                    <div class="p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-2xl font-bold text-brand-red">Pack Full Equipo</h3>
+                        </div>
+                        <ul class="space-y-3 mb-6">
+                            <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> Todo lo del Pack Básico</li>
+                            <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> Costillar de Cerdo BBQ</li>
+                            <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> Pollo al Limón</li>
+                            <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> Buffet de Ensaladas (3 tipos)</li>
+                            <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> Bebidas incluidas</li>
+                        </ul>
+                        <button onclick="window.location.href='#contacto'" class="w-full block bg-brand-yellow text-brand-dark text-center py-3 rounded-lg font-bold hover:bg-yellow-400 transition">¡Lo Quiero! 🔥</button>
+                    </div>
+                </div>
+
+                <!-- Pack 3 -->
+                <div class="bg-white text-gray-800 rounded-xl overflow-hidden shadow-2xl transform hover:-translate-y-2 transition duration-300">
+                    <div class="h-48 overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1544025162-d76694265947?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Parrilla Premium" class="w-full h-full object-cover">
+                    </div>
+                    <div class="p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-2xl font-bold text-brand-red">Pack Premium</h3>
+                        </div>
+                        <ul class="space-y-3 mb-6">
+                            <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> Cortes Finos (Entraña/Filete)</li>
+                            <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> Anticuchos Premium</li>
+                            <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> Tablas de Picoteo Previo</li>
+                            <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> Postre Casero</li>
+                            <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> Barra de Jugos Naturales</li>
+                        </ul>
+                        <button onclick="window.location.href='#contacto'" class="w-full block bg-gray-900 text-white text-center py-3 rounded-lg font-bold hover:bg-brand-red transition">Experiencia VIP</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Instagram Simulated Section -->
+    <section id="galeria" class="py-20 bg-gray-50">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-12">
+                <i class="fab fa-instagram text-5xl bg-clip-text text-transparent bg-gradient-to-r from-purple-500 to-pink-500 mb-4"></i>
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-800">Síguenos en Instagram</h2>
+                <a href="https://www.instagram.com/parrilla_y_cocina_/" target="_blank" class="text-brand-red font-semibold hover:underline text-lg">@parrilla_y_cocina_</a>
+                <p class="text-gray-500 mt-2">¡Mira cómo lo han pasado otros cursos! 📸</p>
+            </div>
+
+            <!-- Fake Grid (Looks like IG) -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <!-- Image 1: Parrilla llena (Similar a sus posts de asado) -->
+                <a href="https://www.instagram.com/parrilla_y_cocina_/" target="_blank" class="group relative block overflow-hidden rounded-lg aspect-square">
+                    <img src="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Parrilla llena" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
+                    <div class="absolute inset-0 insta-overlay opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center text-white space-x-4">
+                        <span><i class="fas fa-heart"></i> 124</span>
+                        <span><i class="fas fa-comment"></i> 12</span>
+                    </div>
+                </a>
+                <!-- Image 2: REEMPLAZADA (Estilo Parrilla Chilena/Carne a las brasas) -->
+                <a href="https://www.instagram.com/p/DE_RDIhN5MN/?img_index=1" target="_blank" class="group relative block overflow-hidden rounded-lg aspect-square">
+                    <img src="https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Carne a la parrilla lista" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
+                    <div class="absolute inset-0 insta-overlay opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center text-white space-x-4">
+                        <span><i class="fas fa-heart"></i> 156</span>
+                        <span><i class="fas fa-comment"></i> 8</span>
+                    </div>
+                </a>
+                <!-- Image 3: Grupo comiendo (Similar a ambiente de paseo) -->
+                <a href="https://www.instagram.com/parrilla_y_cocina_/" target="_blank" class="group relative block overflow-hidden rounded-lg aspect-square">
+                    <img src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Amigos comiendo" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
+                    <div class="absolute inset-0 insta-overlay opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center text-white space-x-4">
+                        <span><i class="fas fa-heart"></i> 256</span>
+                        <span><i class="fas fa-comment"></i> 34</span>
+                    </div>
+                </a>
+                <!-- Image 4: Preparación/Fuego (Similar a sus reels) -->
+                <a href="https://www.instagram.com/parrilla_y_cocina_/" target="_blank" class="group relative block overflow-hidden rounded-lg aspect-square">
+                    <img src="https://images.unsplash.com/photo-1594041680534-e8c8cdebd659?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Fuego asado" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
+                    <div class="absolute inset-0 insta-overlay opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center text-white space-x-4">
+                        <span><i class="fas fa-heart"></i> 140</span>
+                        <span><i class="fas fa-comment"></i> 18</span>
+                    </div>
+                </a>
+            </div>
+            
+            <div class="text-center mt-8">
+                <a href="https://www.instagram.com/parrilla_y_cocina_/" target="_blank" class="inline-block border-2 border-pink-500 text-pink-600 font-bold px-8 py-3 rounded-full hover:bg-pink-50 transition">
+                    Ver más en Instagram <i class="fas fa-arrow-right ml-2"></i>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contacto Section -->
+    <section id="contacto" class="py-20 bg-white">
+        <div class="container mx-auto px-6 max-w-4xl">
+            <div class="bg-brand-dark text-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
+                <!-- Info Side -->
+                <div class="p-10 md:w-1/2 bg-brand-red flex flex-col justify-center">
+                    <h2 class="text-3xl font-bold mb-4">¿Listos para el mejor paseo? 🚌</h2>
+                    <p class="mb-8 text-red-100">Déjanos tus datos y te enviaremos una cotización personalizada para tu curso.</p>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-center">
+                            <i class="fab fa-whatsapp text-2xl w-10"></i>
+                            <span class="font-medium">+56 9 6708 3372</span>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-envelope text-2xl w-10"></i>
+                            <span class="font-medium">contacto@parrillaycocina.cl</span>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-map-marker-alt text-2xl w-10"></i>
+                            <span class="font-medium">Santiago y alrededores</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Side -->
+                <div class="p-10 md:w-1/2 bg-white text-gray-800">
+                    <form onsubmit="sendToWhatsapp(event)">
+                        <div class="mb-4">
+                            <label class="block text-sm font-bold mb-2">Nombre del Apoderado/Encargado</label>
+                            <input type="text" id="form-name" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-brand-red" placeholder="Ej: María Pérez" required>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-bold mb-2">Curso / Colegio</label>
+                            <input type="text" id="form-course" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-brand-red" placeholder="Ej: 4to Medio A - Colegio San José" required>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-bold mb-2">Teléfono de Contacto</label>
+                            <input type="tel" id="form-phone" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-brand-red" placeholder="Ej: +56 9 1234 5678" required>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-bold mb-2">Cantidad de Personas (Aprox)</label>
+                            <input type="number" id="form-quantity" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-brand-red" placeholder="Ej: 40" required>
+                        </div>
+                        <button type="submit" class="w-full bg-brand-dark text-white font-bold py-3 rounded-lg hover:bg-gray-800 transition transform hover:scale-105">
+                            <i class="fab fa-whatsapp mr-2"></i> Enviar a WhatsApp 🚀
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-8">
+        <div class="container mx-auto px-6 text-center">
+            <p class="text-2xl font-bold mb-4 text-brand-red">🔥 Parrilla y Cocina</p>
+            <div class="flex justify-center space-x-6 mb-6">
+                <!-- Instagram -->
+                <a href="https://www.instagram.com/parrilla_y_cocina_/" target="_blank" class="hover:text-brand-orange transition text-2xl" title="Instagram">
+                    <i class="fab fa-instagram"></i>
+                </a>
+                <!-- Facebook -->
+                <a href="https://www.facebook.com/share/1DBr8XZ5L7/?mibextid=wwXIfr" target="_blank" class="hover:text-brand-orange transition text-2xl" title="Facebook">
+                    <i class="fab fa-facebook"></i>
+                </a>
+                <!-- TikTok (Actualizado) -->
+                <a href="https://www.tiktok.com/@parrilla.cocina?_r=1&_t=ZS-93UZinzVQxT" target="_blank" class="hover:text-brand-orange transition text-2xl" title="TikTok">
+                    <i class="fab fa-tiktok"></i>
+                </a>
+                <!-- WhatsApp -->
+                <a href="https://wa.me/56967083372" target="_blank" class="hover:text-brand-orange transition text-2xl" title="WhatsApp">
+                    <i class="fab fa-whatsapp"></i>
+                </a>
+            </div>
+            <p class="text-gray-500 text-sm">© 2024 Parrilla y Cocina. Todos los derechos reservados. | Diseñado para el disfrute.</p>
+        </div>
+    </footer>
+
+    <!-- WhatsApp Floating Button -->
+    <a href="https://wa.me/56967083372" target="_blank" class="fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-lg hover:bg-green-600 transition z-50 animate-bounce">
+        <i class="fab fa-whatsapp text-3xl"></i>
+    </a>
+
+    <!-- Scripts -->
+    <script>
+        // Mobile Menu Toggle
+        function toggleMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        // Change navbar style on scroll
+        window.addEventListener('scroll', function() {
+            const nav = document.querySelector('nav');
+            if (window.scrollY > 50) {
+                nav.classList.add('shadow-lg');
+                nav.classList.add('bg-white/95');
+            } else {
+                nav.classList.remove('shadow-lg');
+                nav.classList.remove('bg-white/95');
+            }
+        });
+
+        // WhatsApp Form Logic
+        function sendToWhatsapp(event) {
+            event.preventDefault();
+            
+            const name = document.getElementById('form-name').value;
+            const course = document.getElementById('form-course').value;
+            const phone = document.getElementById('form-phone').value;
+            const quantity = document.getElementById('form-quantity').value;
+
+            // Mensaje formateado
+            const message = `Hola! 👋 Me gustaría cotizar un asado para curso.%0A%0A👤 *Nombre:* ${name}%0A🏫 *Curso:* ${course}%0A📱 *Teléfono:* ${phone}%0A👥 *Cantidad:* ${quantity} personas%0A%0AQuedo atento a su respuesta!`;
+
+            // Número de destino
+            const phoneNumber = "56967083372";
+            
+            // Abrir WhatsApp
+            window.open(`https://wa.me/${phoneNumber}?text=${message}`, '_blank');
+        }
+    </script>
+</body>
+</html>
