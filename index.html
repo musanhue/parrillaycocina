@@ -4,16 +4,243 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Parrilla y Cocina | El Mejor Asado para tu Curso</title>
-    <!-- Favicon de Asado (Carne) -->
+    <!-- Favicon de Asado -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍖</text></svg>">
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <!-- Font Awesome para Iconos -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+        // Configuración automática del entorno (o fallback para demo)
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "demo", authDomain: "demo", projectId: "demo" };
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'parrilla-cocina-demo';
+        
+        // Inicializar Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // Autenticación anónima para leer/escribir en Firestore
+        signInAnonymously(auth).catch((error) => console.error("Error Auth:", error));
+
+        // Datos por defecto (para inicializar si la BD está vacía)
+        const defaultMenus = {
+            menu1: {
+                title: "Menú 1",
+                badge: "Económico",
+                image: "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                sections: [
+                    { title: "🌄 Desayuno", items: ["• Marraqueta jamón/queso", "• Leche, jugo, té y café"] },
+                    { title: "🔥 Almuerzo Parrillero", items: ["• Trutro entero de pollo 🍗", "• Choripán con pebre y salsas", "• Paleta de Helado 🍦"] },
+                    { title: "🌇 Once", items: ["• Completo Italiano 🌭", "• Bebida, té y café"] }
+                ]
+            },
+            menu2: {
+                title: "Menú 2",
+                badge: "RECOMENDADO",
+                image: "https://images.unsplash.com/photo-1600891964092-4316c288032e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                sections: [
+                    { title: "🌄 Desayuno", items: ["• Marraqueta jamón/queso", "• Leche, jugo, té y café"] },
+                    { title: "🔥 Almuerzo Parrillero", items: ["• Lomo de Res 🥩", "• Choripán con pebre y salsas", "• Paleta de Helado 🍦"] },
+                    { title: "🌇 Once", items: ["• Completo Italiano 🌭", "• Bebida, té y café"] }
+                ]
+            },
+            menu3: {
+                title: "Menú 3",
+                badge: "VIP",
+                image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                sections: [
+                    { title: "🌄 Desayuno", items: ["• Marraqueta jamón/queso", "• Leche, jugo, té y café"] },
+                    { title: "🔥 Almuerzo Parrillero", items: ["• Lomo de Res 🥩", "• Choripán con pebre y salsas", "• Paleta de Helado 🍦"] },
+                    { title: "🌇 Once", items: ["• Hamburguesa Queso 🍔", "• Bebida, té y café"] }
+                ]
+            }
+        };
+
+        // Estado Global
+        let currentMenus = JSON.parse(JSON.stringify(defaultMenus));
+
+        // Referencia al documento de menús (CORREGIDO: Apunta a un documento específico 'principal')
+        function getMenusRef() {
+            // Estructura: artifacts -> appId -> public -> data (doc) -> menus (collection) -> principal (doc)
+            return doc(db, 'artifacts', appId, 'public', 'data', 'menus', 'principal');
+        }
+
+        // Cargar datos en tiempo real
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                const menusRef = getMenusRef();
+                onSnapshot(menusRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        currentMenus = docSnap.data();
+                        renderPublicMenus();
+                        // Si estamos en admin, refrescar formulario también
+                        if (!document.getElementById('admin-view').classList.contains('hidden')) {
+                            renderAdminForms();
+                        }
+                    } else {
+                        // Si no existe, crearlo con los defaults
+                        setDoc(menusRef, defaultMenus);
+                    }
+                }, (error) => console.error("Error Firestore:", error));
+            }
+        });
+
+        // Funciones Globales para HTML
+        window.saveMenuChanges = async function() {
+            const saveBtn = document.getElementById('save-btn');
+            const originalText = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+            saveBtn.disabled = true;
+
+            try {
+                // Recopilar datos del formulario
+                const updatedMenus = {};
+                ['menu1', 'menu2', 'menu3'].forEach(key => {
+                    updatedMenus[key] = {
+                        title: document.getElementById(`${key}-title`).value,
+                        badge: document.getElementById(`${key}-badge`).value,
+                        image: currentMenus[key].image, // Mantener imagen original por ahora
+                        sections: [
+                            { 
+                                title: document.getElementById(`${key}-s1-title`).value, 
+                                items: document.getElementById(`${key}-s1-items`).value.split('\n').filter(i => i.trim()) 
+                            },
+                            { 
+                                title: document.getElementById(`${key}-s2-title`).value, 
+                                items: document.getElementById(`${key}-s2-items`).value.split('\n').filter(i => i.trim()) 
+                            },
+                            { 
+                                title: document.getElementById(`${key}-s3-title`).value, 
+                                items: document.getElementById(`${key}-s3-items`).value.split('\n').filter(i => i.trim()) 
+                            }
+                        ]
+                    };
+                });
+
+                await setDoc(getMenusRef(), updatedMenus);
+                alert('¡Cambios guardados exitosamente! La página principal se ha actualizado.');
+            } catch (e) {
+                console.error(e);
+                alert('Error al guardar cambios: ' + e.message);
+            } finally {
+                saveBtn.innerHTML = originalText;
+                saveBtn.disabled = false;
+            }
+        };
+
+        window.renderPublicMenus = function() {
+            const container = document.getElementById('public-menus-container');
+            if (!container) return;
+            
+            let html = '';
+            
+            // Helper para renderizar items
+            const renderItems = (items) => items.map(i => `<li>${i}</li>`).join('');
+
+            ['menu1', 'menu2', 'menu3'].forEach(key => {
+                const menu = currentMenus[key];
+                let borderClass = key === 'menu2' ? 'border-4 border-brand-yellow relative' : '';
+                let badgeHtml = key === 'menu2' ? `<div class="absolute top-0 right-0 bg-brand-yellow text-brand-dark text-xs font-bold px-3 py-1 rounded-bl-lg z-10">${menu.badge}</div>` : 
+                               (menu.badge ? `<div class="absolute top-0 left-0 bg-brand-red text-white text-xs font-bold px-3 py-1 rounded-br-lg">${menu.badge}</div>` : '');
+
+                html += `
+                <div class="bg-white text-gray-800 rounded-xl overflow-hidden shadow-2xl transform hover:-translate-y-2 transition duration-300 flex flex-col h-full ${borderClass}">
+                    ${badgeHtml}
+                    <div class="h-48 overflow-hidden relative">
+                        <img src="${menu.image}" alt="${menu.title}" class="w-full h-full object-cover">
+                    </div>
+                    <div class="p-6 flex-grow flex flex-col">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-2xl font-bold text-brand-red">${menu.title}</h3>
+                        </div>
+                        <div class="flex-grow space-y-4">
+                            ${menu.sections.map((section, index) => `
+                                <div class="${index > 0 ? 'border-t pt-2' : ''}">
+                                    <h4 class="font-bold text-sm text-gray-500 uppercase mb-1">${section.title}</h4>
+                                    <ul class="text-sm space-y-1 ml-2">
+                                        ${renderItems(section.items)}
+                                    </ul>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <button onclick="selectMenu('${menu.title}')" class="mt-6 w-full block ${key === 'menu2' ? 'bg-brand-yellow text-brand-dark hover:bg-yellow-400' : 'bg-gray-900 text-white hover:bg-brand-red'} text-center py-3 rounded-lg font-bold transition">Cotizar Este Menú</button>
+                    </div>
+                </div>`;
+            });
+
+            container.innerHTML = html;
+            // Actualizar el select del formulario también
+            updateFormSelect();
+        };
+
+        window.renderAdminForms = function() {
+            const container = document.getElementById('admin-forms-container');
+            if (!container) return;
+
+            let html = '';
+            ['menu1', 'menu2', 'menu3'].forEach(key => {
+                const menu = currentMenus[key];
+                html += `
+                <div class="bg-white p-6 rounded-lg shadow-md mb-8 border-l-4 border-brand-red">
+                    <h3 class="text-xl font-bold mb-4 text-brand-dark uppercase border-b pb-2">Editando: ${key}</h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase">Título del Menú</label>
+                            <input type="text" id="${key}-title" value="${menu.title}" class="w-full border p-2 rounded">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase">Etiqueta (Badge)</label>
+                            <input type="text" id="${key}-badge" value="${menu.badge}" class="w-full border p-2 rounded">
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        ${menu.sections.map((section, idx) => `
+                            <div class="bg-gray-50 p-3 rounded">
+                                <label class="block text-xs font-bold text-brand-red mb-1">Sección ${idx + 1}: Título</label>
+                                <input type="text" id="${key}-s${idx+1}-title" value="${section.title}" class="w-full border p-2 rounded mb-2">
+                                
+                                <label class="block text-xs font-bold text-gray-500 mb-1">Ítems (uno por línea)</label>
+                                <textarea id="${key}-s${idx+1}-items" class="w-full border p-2 rounded h-24 font-mono text-sm">${section.items.join('\n')}</textarea>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        function updateFormSelect() {
+            const select = document.getElementById('form-menu');
+            if (!select) return;
+            // Guardar selección actual
+            const currentVal = select.value;
+            
+            // Regenerar opciones
+            let optionsHtml = '';
+            ['menu1', 'menu2', 'menu3'].forEach(key => {
+                const title = currentMenus[key].title;
+                optionsHtml += `<option value="${title}">${title}</option>`;
+            });
+            optionsHtml += `<option value="Personalizado">Otro / Personalizado ✨</option>`;
+            
+            select.innerHTML = optionsHtml;
+            // Restaurar si existe, o default
+            if (currentVal) select.value = currentVal;
+        }
+    </script>
+
     <script>
         tailwind.config = {
             theme: {
@@ -41,438 +268,376 @@
             background-size: cover;
             background-position: center;
         }
+        /* Ocultar scrollbar en admin */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none;  scrollbar-width: none; }
     </style>
 </head>
 <body class="font-sans text-gray-800 scroll-smooth bg-gray-50">
 
-    <!-- Navbar -->
-    <nav class="bg-white shadow-md fixed w-full z-50">
-        <div class="container mx-auto px-6 py-3 flex justify-between items-center">
-            <a href="#" class="text-2xl font-bold text-brand-red flex items-center gap-2">
-                🔥 Parrilla y Cocina
-            </a>
+    <!-- VISTA PÚBLICA -->
+    <div id="public-view">
+        <!-- Navbar -->
+        <nav class="bg-white shadow-md fixed w-full z-50">
+            <div class="container mx-auto px-6 py-3 flex justify-between items-center">
+                <a href="#" class="text-2xl font-bold text-brand-red flex items-center gap-2">
+                    🔥 Parrilla y Cocina
+                </a>
+                
+                <div class="md:hidden">
+                    <button onclick="toggleMenu()" class="text-gray-600 hover:text-brand-red focus:outline-none">
+                        <i class="fas fa-bars text-2xl"></i>
+                    </button>
+                </div>
+
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="#inicio" class="text-gray-700 hover:text-brand-red font-medium transition">Inicio</a>
+                    <a href="#servicios" class="text-gray-700 hover:text-brand-red font-medium transition">Servicios</a>
+                    <a href="#menu" class="text-gray-700 hover:text-brand-red font-medium transition">Menú</a>
+                    <a href="#galeria" class="text-gray-700 hover:text-brand-red font-medium transition">Instagram</a>
+                    <a href="#contacto" class="bg-brand-red text-white px-5 py-2 rounded-full font-bold hover:bg-red-700 transition shadow-lg transform hover:scale-105 flex items-center gap-2">
+                        <i class="fas fa-hand-holding-dollar"></i> Cotizar Ahora
+                    </a>
+                </div>
+            </div>
             
-            <!-- Mobile Menu Button -->
-            <div class="md:hidden">
-                <button onclick="toggleMenu()" class="text-gray-600 hover:text-brand-red focus:outline-none">
-                    <i class="fas fa-bars text-2xl"></i>
+            <div id="mobile-menu" class="hidden md:hidden bg-white border-t p-4">
+                <a href="#inicio" class="block py-2 text-gray-700 hover:text-brand-red" onclick="toggleMenu()">Inicio</a>
+                <a href="#servicios" class="block py-2 text-gray-700 hover:text-brand-red" onclick="toggleMenu()">Servicios</a>
+                <a href="#menu" class="block py-2 text-gray-700 hover:text-brand-red" onclick="toggleMenu()">Menú</a>
+                <a href="#galeria" class="block py-2 text-gray-700 hover:text-brand-red" onclick="toggleMenu()">Galería</a>
+                <a href="#contacto" class="block py-2 text-brand-red font-bold" onclick="toggleMenu()">Cotizar</a>
+            </div>
+        </nav>
+
+        <!-- Hero Section -->
+        <header id="inicio" class="hero-bg h-screen flex items-center justify-center text-center px-4 pt-16">
+            <div class="max-w-4xl mx-auto text-white">
+                <div class="inline-block bg-brand-orange text-white px-4 py-1 rounded-full text-sm font-bold mb-4 shadow-md animate-bounce">
+                    🎓 ¡Temporada de Paseos 2026-2027!
+                </div>
+                <h1 class="text-4xl md:text-6xl font-bold mb-6 leading-tight">
+                    El Mejor Asado para tu <span class="text-brand-yellow">Paseo de Curso</span> 🍖🔥
+                </h1>
+                <p class="text-xl md:text-2xl mb-8 font-light">
+                    Relájate y disfruta. Nosotros ponemos la parrilla, la carne y la buena onda. ¡Servicio completo para colegios!
+                </p>
+                <div class="flex flex-col md:flex-row gap-4 justify-center">
+                    <a href="#contacto" class="bg-brand-red hover:bg-red-700 text-white px-8 py-4 rounded-full text-lg font-bold transition transform hover:-translate-y-1 shadow-xl">
+                        Solicitar Presupuesto 🚌
+                    </a>
+                    <a href="https://www.instagram.com/parrilla_y_cocina_/" target="_blank" class="bg-white hover:bg-gray-100 text-gray-900 px-8 py-4 rounded-full text-lg font-bold transition flex items-center justify-center gap-2">
+                        <i class="fab fa-instagram text-pink-600 text-xl"></i> Ver Fotos
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <!-- Por Qué Elegirnos -->
+        <section id="servicios" class="py-20 bg-white">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-16">
+                    <h2 class="text-3xl md:text-4xl font-bold text-brand-dark mb-4">¿Por qué elegir Parrilla y Cocina? 🤔</h2>
+                    <div class="w-24 h-1 bg-brand-red mx-auto rounded"></div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
+                    <div class="bg-gray-50 p-8 rounded-2xl shadow-lg hover:shadow-xl transition text-center border-b-4 border-brand-red">
+                        <div class="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <span class="text-3xl">👨‍🍳</span>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3 text-brand-dark">Expertos Parrilleros</h3>
+                        <p class="text-gray-600">Nuestro equipo sabe exactamente el punto de la carne. ¡Nadie se queda con hambre y todo sale a tiempo!</p>
+                    </div>
+                    <div class="bg-gray-50 p-8 rounded-2xl shadow-lg hover:shadow-xl transition text-center border-b-4 border-brand-orange">
+                        <div class="bg-orange-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <span class="text-3xl">🥗</span>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3 text-brand-dark">Opciones para Todos</h3>
+                        <p class="text-gray-600">¿Vegetarianos? ¿Veganos? ¡Sin problema! Tenemos menús inclusivos para que todo el curso disfrute.</p>
+                    </div>
+                    <div class="bg-gray-50 p-8 rounded-2xl shadow-lg hover:shadow-xl transition text-center border-b-4 border-brand-yellow">
+                        <div class="bg-yellow-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <span class="text-3xl">⚡</span>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3 text-brand-dark">Servicio Full</h3>
+                        <p class="text-gray-600">Llevamos todo: parrillas, carbón, platos, cubiertos y salsas. Ustedes solo traigan las ganas de pasarlo bien.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Menú Section (DYNAMIC) -->
+        <section id="menu" class="py-20 bg-brand-dark text-white relative overflow-hidden">
+            <div class="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-brand-red rounded-full opacity-20 blur-3xl"></div>
+            <div class="absolute bottom-0 left-0 -ml-20 -mb-20 w-64 h-64 bg-brand-yellow rounded-full opacity-20 blur-3xl"></div>
+
+            <div class="container mx-auto px-6 relative z-10">
+                <div class="text-center mb-16">
+                    <span class="text-brand-yellow font-bold tracking-wider uppercase text-sm">Nuestros Packs Escolares</span>
+                    <h2 class="text-3xl md:text-5xl font-bold mt-2">¡Desayuno, Almuerzo y Once! 😋</h2>
+                    <p class="mt-4 text-gray-300">Incluye servicio completo por todo el día</p>
+                </div>
+
+                <!-- CONTENEDOR DE MENÚS DINÁMICOS -->
+                <div id="public-menus-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- Loading State -->
+                    <div class="col-span-3 text-center py-10">
+                        <i class="fas fa-spinner fa-spin text-4xl text-brand-yellow"></i>
+                        <p class="mt-4">Cargando menús actualizados...</p>
+                    </div>
+                </div>
+                
+                <div class="mt-8 text-center bg-white/10 p-4 rounded-lg backdrop-blur-sm">
+                    <p class="text-sm italic">Nota: El almuerzo base no incluye ensaladas ni bebestibles, pero puedes consultar por nuestro menú complementario.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Instagram Simulated Section -->
+        <section id="galeria" class="py-20 bg-gray-50">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <i class="fab fa-instagram text-5xl bg-clip-text text-transparent bg-gradient-to-r from-purple-500 to-pink-500 mb-4"></i>
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-800">Síguenos en Instagram</h2>
+                    <a href="https://www.instagram.com/parrilla_y_cocina_/" target="_blank" class="text-brand-red font-semibold hover:underline text-lg">@parrilla_y_cocina_</a>
+                    <p class="text-gray-500 mt-2">¡Mira cómo lo han pasado otros cursos! 📸</p>
+                </div>
+                <!-- Fake Grid -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <a href="https://www.instagram.com/parrilla_y_cocina_/" target="_blank" class="group relative block overflow-hidden rounded-lg aspect-square">
+                        <img src="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Parrilla llena" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
+                        <div class="absolute inset-0 insta-overlay opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center text-white space-x-4">
+                            <span><i class="fas fa-heart"></i> 124</span>
+                            <span><i class="fas fa-comment"></i> 12</span>
+                        </div>
+                    </a>
+                    <a href="https://www.instagram.com/p/DE_RDIhN5MN/?img_index=1" target="_blank" class="group relative block overflow-hidden rounded-lg aspect-square">
+                        <img src="https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Carne a la parrilla lista" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
+                        <div class="absolute inset-0 insta-overlay opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center text-white space-x-4">
+                            <span><i class="fas fa-heart"></i> 156</span>
+                            <span><i class="fas fa-comment"></i> 8</span>
+                        </div>
+                    </a>
+                    <a href="https://www.instagram.com/parrilla_y_cocina_/" target="_blank" class="group relative block overflow-hidden rounded-lg aspect-square">
+                        <img src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Amigos comiendo" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
+                        <div class="absolute inset-0 insta-overlay opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center text-white space-x-4">
+                            <span><i class="fas fa-heart"></i> 256</span>
+                            <span><i class="fas fa-comment"></i> 34</span>
+                        </div>
+                    </a>
+                    <a href="https://www.instagram.com/parrilla_y_cocina_/" target="_blank" class="group relative block overflow-hidden rounded-lg aspect-square">
+                        <img src="https://images.unsplash.com/photo-1594041680534-e8c8cdebd659?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Fuego asado" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
+                        <div class="absolute inset-0 insta-overlay opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center text-white space-x-4">
+                            <span><i class="fas fa-heart"></i> 140</span>
+                            <span><i class="fas fa-comment"></i> 18</span>
+                        </div>
+                    </a>
+                </div>
+                <div class="text-center mt-8">
+                    <a href="https://www.instagram.com/parrilla_y_cocina_/" target="_blank" class="inline-block border-2 border-pink-500 text-pink-600 font-bold px-8 py-3 rounded-full hover:bg-pink-50 transition">
+                        Ver más en Instagram <i class="fas fa-arrow-right ml-2"></i>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contacto Section -->
+        <section id="contacto" class="py-20 bg-white">
+            <div class="container mx-auto px-6 max-w-4xl">
+                <div class="bg-brand-dark text-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
+                    <div class="p-10 md:w-1/2 bg-brand-red flex flex-col justify-center">
+                        <h2 class="text-3xl font-bold mb-4">¿Listos para el mejor paseo? 🚌</h2>
+                        <p class="mb-8 text-red-100">Déjanos tus datos y te enviaremos una cotización personalizada para tu curso.</p>
+                        <div class="space-y-4">
+                            <div class="flex items-center">
+                                <i class="fab fa-whatsapp text-2xl w-10"></i>
+                                <span class="font-medium">+56 9 6708 3372</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-envelope text-2xl w-10"></i>
+                                <span class="font-medium">contacto@parrillaycocina.cl</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-map-marker-alt text-2xl w-10"></i>
+                                <span class="font-medium">Santiago y alrededores</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-10 md:w-1/2 bg-white text-gray-800">
+                        <form onsubmit="sendToWhatsapp(event)">
+                            <div class="mb-4">
+                                <label class="block text-sm font-bold mb-2">Nombre del Apoderado/Encargado</label>
+                                <input type="text" id="form-name" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-brand-red" placeholder="Ej: María Pérez" required>
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-sm font-bold mb-2">Curso / Colegio / Empresa</label>
+                                <input type="text" id="form-course" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-brand-red" placeholder="Ej: 4to Medio A o Empresa SA" required>
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-sm font-bold mb-2">Selecciona tu Menú</label>
+                                <select id="form-menu" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-brand-red bg-white cursor-pointer">
+                                    <!-- Options filled by JS -->
+                                </select>
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-sm font-bold mb-2">Cantidad de Personas (Aprox)</label>
+                                <input type="number" id="form-quantity" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-brand-red" placeholder="Ej: 40" required>
+                            </div>
+                            <button type="submit" class="w-full bg-brand-dark text-white font-bold py-3 rounded-lg hover:bg-gray-800 transition transform hover:scale-105">
+                                <i class="fab fa-whatsapp mr-2"></i> Enviar a WhatsApp 🚀
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="bg-gray-900 text-white py-8">
+            <div class="container mx-auto px-6 text-center">
+                <p class="text-2xl font-bold mb-4 text-brand-red">🔥 Parrilla y Cocina</p>
+                <div class="flex justify-center space-x-6 mb-6">
+                    <a href="https://www.instagram.com/parrilla_y_cocina_/" target="_blank" class="hover:text-brand-orange transition text-2xl" title="Instagram"><i class="fab fa-instagram"></i></a>
+                    <a href="https://www.facebook.com/share/1DBr8XZ5L7/?mibextid=wwXIfr" target="_blank" class="hover:text-brand-orange transition text-2xl" title="Facebook"><i class="fab fa-facebook"></i></a>
+                    <a href="https://www.tiktok.com/@parrilla.cocina?_r=1&_t=ZS-93UZinzVQxT" target="_blank" class="hover:text-brand-orange transition text-2xl" title="TikTok"><i class="fab fa-tiktok"></i></a>
+                    <a href="https://wa.me/56967083372" target="_blank" class="hover:text-brand-orange transition text-2xl" title="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+                </div>
+                <div class="flex justify-center items-center gap-4 text-gray-500 text-sm">
+                    <p>© 2024 Parrilla y Cocina. Todos los derechos reservados.</p>
+                    <a href="#admin" onclick="checkHash()" class="hover:text-white" title="Acceso Admin"><i class="fas fa-lock"></i></a>
+                </div>
+            </div>
+        </footer>
+
+        <!-- WhatsApp Floating -->
+        <a href="https://wa.me/56967083372" target="_blank" class="fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-lg hover:bg-green-600 transition z-50 animate-bounce">
+            <i class="fab fa-whatsapp text-3xl"></i>
+        </a>
+    </div>
+
+    <!-- VISTA LOGIN -->
+    <div id="login-view" class="hidden fixed inset-0 z-50 bg-brand-dark flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full text-center">
+            <div class="mb-6">
+                <i class="fas fa-user-shield text-5xl text-brand-red"></i>
+            </div>
+            <h2 class="text-2xl font-bold mb-6 text-gray-800">Acceso Administrativo</h2>
+            <form onsubmit="handleLogin(event)">
+                <input type="text" id="username" placeholder="Usuario" class="w-full mb-4 p-3 border rounded focus:border-brand-red outline-none">
+                <input type="password" id="password" placeholder="Contraseña" class="w-full mb-6 p-3 border rounded focus:border-brand-red outline-none">
+                <button type="submit" class="w-full bg-brand-red text-white font-bold py-3 rounded hover:bg-red-700 transition">Entrar al Panel</button>
+            </form>
+            <button onclick="window.location.hash=''" class="mt-4 text-gray-500 hover:text-gray-800 text-sm">Volver al sitio</button>
+        </div>
+    </div>
+
+    <!-- VISTA ADMIN PANEL -->
+    <div id="admin-view" class="hidden min-h-screen bg-gray-100 pb-20">
+        <!-- Admin Navbar -->
+        <div class="bg-brand-dark text-white p-4 shadow-md sticky top-0 z-40">
+            <div class="container mx-auto flex justify-between items-center">
+                <h1 class="font-bold text-xl"><i class="fas fa-tools mr-2"></i> Editor de Menús</h1>
+                <div class="flex gap-4">
+                    <a href="#" class="text-gray-300 hover:text-white flex items-center gap-2 bg-gray-700 px-3 py-1 rounded text-sm"><i class="fas fa-eye"></i> Ver Página</a>
+                    <button onclick="logout()" class="text-red-300 hover:text-white text-sm"><i class="fas fa-sign-out-alt"></i> Salir</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="container mx-auto px-4 py-8 max-w-4xl">
+            <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6" role="alert">
+                <p class="font-bold">Modo Edición</p>
+                <p>Cualquier cambio que guardes aquí se reflejará inmediatamente en la página principal para todos los usuarios.</p>
+            </div>
+
+            <div id="admin-forms-container">
+                <!-- Se rellena con JS -->
+                <div class="text-center py-10"><i class="fas fa-spinner fa-spin text-4xl"></i></div>
+            </div>
+
+            <!-- Botón flotante para guardar -->
+            <div class="fixed bottom-6 right-6 flex gap-4">
+                 <button onclick="window.scrollTo(0,0)" class="bg-gray-500 text-white p-4 rounded-full shadow-lg hover:bg-gray-600">
+                    <i class="fas fa-arrow-up"></i>
+                </button>
+                <button id="save-btn" onclick="saveMenuChanges()" class="bg-green-600 text-white px-8 py-4 rounded-full shadow-xl hover:bg-green-700 font-bold flex items-center gap-2 transform hover:scale-105 transition">
+                    <i class="fas fa-save"></i> Guardar Cambios
                 </button>
             </div>
-
-            <!-- Desktop Menu -->
-            <div class="hidden md:flex items-center space-x-8">
-                <a href="#inicio" class="text-gray-700 hover:text-brand-red font-medium transition">Inicio</a>
-                <a href="#servicios" class="text-gray-700 hover:text-brand-red font-medium transition">Servicios</a>
-                <a href="#menu" class="text-gray-700 hover:text-brand-red font-medium transition">Menú</a>
-                <a href="#galeria" class="text-gray-700 hover:text-brand-red font-medium transition">Instagram</a>
-                <a href="#contacto" class="bg-brand-red text-white px-5 py-2 rounded-full font-bold hover:bg-red-700 transition shadow-lg transform hover:scale-105 flex items-center gap-2">
-                    <i class="fas fa-hand-holding-dollar"></i> Cotizar Ahora
-                </a>
-            </div>
         </div>
-        
-        <!-- Mobile Menu Dropdown -->
-        <div id="mobile-menu" class="hidden md:hidden bg-white border-t p-4">
-            <a href="#inicio" class="block py-2 text-gray-700 hover:text-brand-red" onclick="toggleMenu()">Inicio</a>
-            <a href="#servicios" class="block py-2 text-gray-700 hover:text-brand-red" onclick="toggleMenu()">Servicios</a>
-            <a href="#menu" class="block py-2 text-gray-700 hover:text-brand-red" onclick="toggleMenu()">Menú</a>
-            <a href="#galeria" class="block py-2 text-gray-700 hover:text-brand-red" onclick="toggleMenu()">Galería</a>
-            <a href="#contacto" class="block py-2 text-brand-red font-bold" onclick="toggleMenu()">Cotizar</a>
-        </div>
-    </nav>
+    </div>
 
-    <!-- Hero Section -->
-    <header id="inicio" class="hero-bg h-screen flex items-center justify-center text-center px-4 pt-16">
-        <div class="max-w-4xl mx-auto text-white">
-            <div class="inline-block bg-brand-orange text-white px-4 py-1 rounded-full text-sm font-bold mb-4 shadow-md animate-bounce">
-                🎓 ¡Temporada de Paseos 2026-2027!
-            </div>
-            <h1 class="text-4xl md:text-6xl font-bold mb-6 leading-tight">
-                El Mejor Asado para tu <span class="text-brand-yellow">Paseo de Curso</span> 🍖🔥
-            </h1>
-            <p class="text-xl md:text-2xl mb-8 font-light">
-                Relájate y disfruta. Nosotros ponemos la parrilla, la carne y la buena onda. ¡Servicio completo para colegios!
-            </p>
-            <div class="flex flex-col md:flex-row gap-4 justify-center">
-                <a href="#contacto" class="bg-brand-red hover:bg-red-700 text-white px-8 py-4 rounded-full text-lg font-bold transition transform hover:-translate-y-1 shadow-xl">
-                    Solicitar Presupuesto 🚌
-                </a>
-                <a href="https://www.instagram.com/parrilla_y_cocina_/" target="_blank" class="bg-white hover:bg-gray-100 text-gray-900 px-8 py-4 rounded-full text-lg font-bold transition flex items-center justify-center gap-2">
-                    <i class="fab fa-instagram text-pink-600 text-xl"></i> Ver Fotos
-                </a>
-            </div>
-        </div>
-    </header>
-
-    <!-- Por Qué Elegirnos -->
-    <section id="servicios" class="py-20 bg-white">
-        <div class="container mx-auto px-6">
-            <div class="text-center mb-16">
-                <h2 class="text-3xl md:text-4xl font-bold text-brand-dark mb-4">¿Por qué elegir Parrilla y Cocina? 🤔</h2>
-                <div class="w-24 h-1 bg-brand-red mx-auto rounded"></div>
-            </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
-                <!-- Feature 1 -->
-                <div class="bg-gray-50 p-8 rounded-2xl shadow-lg hover:shadow-xl transition text-center border-b-4 border-brand-red">
-                    <div class="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <span class="text-3xl">👨‍🍳</span>
-                    </div>
-                    <h3 class="text-xl font-bold mb-3 text-brand-dark">Expertos Parrilleros</h3>
-                    <p class="text-gray-600">
-                        Nuestro equipo sabe exactamente el punto de la carne. ¡Nadie se queda con hambre y todo sale a tiempo!
-                    </p>
-                </div>
-                
-                <!-- Feature 2 -->
-                <div class="bg-gray-50 p-8 rounded-2xl shadow-lg hover:shadow-xl transition text-center border-b-4 border-brand-orange">
-                    <div class="bg-orange-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <span class="text-3xl">🥗</span>
-                    </div>
-                    <h3 class="text-xl font-bold mb-3 text-brand-dark">Opciones para Todos</h3>
-                    <p class="text-gray-600">
-                        ¿Vegetarianos? ¿Veganos? ¡Sin problema! Tenemos menús inclusivos para que todo el curso disfrute.
-                    </p>
-                </div>
-                
-                <!-- Feature 3 -->
-                <div class="bg-gray-50 p-8 rounded-2xl shadow-lg hover:shadow-xl transition text-center border-b-4 border-brand-yellow">
-                    <div class="bg-yellow-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <span class="text-3xl">⚡</span>
-                    </div>
-                    <h3 class="text-xl font-bold mb-3 text-brand-dark">Servicio Full</h3>
-                    <p class="text-gray-600">
-                        Llevamos todo: parrillas, carbón, platos, cubiertos y salsas. Ustedes solo traigan las ganas de pasarlo bien.
-                    </p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Menú Section -->
-    <section id="menu" class="py-20 bg-brand-dark text-white relative overflow-hidden">
-        <!-- Background decorative elements -->
-        <div class="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-brand-red rounded-full opacity-20 blur-3xl"></div>
-        <div class="absolute bottom-0 left-0 -ml-20 -mb-20 w-64 h-64 bg-brand-yellow rounded-full opacity-20 blur-3xl"></div>
-
-        <div class="container mx-auto px-6 relative z-10">
-            <div class="text-center mb-16">
-                <span class="text-brand-yellow font-bold tracking-wider uppercase text-sm">Nuestros Packs Escolares</span>
-                <h2 class="text-3xl md:text-5xl font-bold mt-2">¡Desayuno, Almuerzo y Once! 😋</h2>
-                <p class="mt-4 text-gray-300">Incluye servicio completo por todo el día</p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <!-- Pack 1 -->
-                <div class="bg-white text-gray-800 rounded-xl overflow-hidden shadow-2xl transform hover:-translate-y-2 transition duration-300 flex flex-col h-full">
-                    <div class="h-48 overflow-hidden relative">
-                        <img src="https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Pollo Asado" class="w-full h-full object-cover">
-                        <div class="absolute top-0 left-0 bg-brand-red text-white text-xs font-bold px-3 py-1 rounded-br-lg">Económico</div>
-                    </div>
-                    <div class="p-6 flex-grow flex flex-col">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-2xl font-bold text-brand-red">Menú 1</h3>
-                        </div>
-                        <div class="flex-grow space-y-4">
-                            <div>
-                                <h4 class="font-bold text-sm text-gray-500 uppercase mb-1">🌄 Desayuno</h4>
-                                <ul class="text-sm space-y-1 ml-2">
-                                    <li>• Marraqueta jamón/queso</li>
-                                    <li>• Leche, jugo, té y café</li>
-                                </ul>
-                            </div>
-                            <div class="border-t pt-2">
-                                <h4 class="font-bold text-sm text-gray-500 uppercase mb-1">🔥 Almuerzo Parrillero</h4>
-                                <ul class="text-sm space-y-1 ml-2">
-                                    <li class="font-semibold text-brand-red">• Lomo de Res 🥩</li>
-                                    <li>• Choripán con pebre y salsas</li>
-                                    <li>• Paleta de Helado 🍦</li>
-                                </ul>
-                            </div>
-                            <div class="border-t pt-2">
-                                <h4 class="font-bold text-sm text-gray-500 uppercase mb-1">🌇 Once</h4>
-                                <ul class="text-sm space-y-1 ml-2">
-                                    <li>• Completo Italiano 🌭</li>
-                                    <li>• Bebida, té y café</li>
-                                </ul>
-                            </div>
-                        </div>
-                        <button onclick="selectMenu('Menú 1')" class="mt-6 w-full block bg-gray-900 text-white text-center py-3 rounded-lg font-bold hover:bg-brand-red transition">Cotizar Este Menú</button>
-                    </div>
-                </div>
-
-                <!-- Pack 2 -->
-                <div class="bg-white text-gray-800 rounded-xl overflow-hidden shadow-2xl transform hover:-translate-y-2 transition duration-300 border-4 border-brand-yellow relative flex flex-col h-full">
-                    <div class="absolute top-0 right-0 bg-brand-yellow text-brand-dark text-xs font-bold px-3 py-1 rounded-bl-lg z-10">RECOMENDADO</div>
-                    <div class="h-48 overflow-hidden">
-                        <img src="https://images.unsplash.com/photo-1600891964092-4316c288032e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Lomo Parrilla" class="w-full h-full object-cover">
-                    </div>
-                    <div class="p-6 flex-grow flex flex-col">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-2xl font-bold text-brand-red">Menú 2</h3>
-                        </div>
-                        <div class="flex-grow space-y-4">
-                            <div>
-                                <h4 class="font-bold text-sm text-gray-500 uppercase mb-1">🌄 Desayuno</h4>
-                                <ul class="text-sm space-y-1 ml-2">
-                                    <li>• Marraqueta jamón/queso</li>
-                                    <li>• Leche, jugo, té y café</li>
-                                </ul>
-                            </div>
-                            <div class="border-t pt-2">
-                                <h4 class="font-bold text-sm text-gray-500 uppercase mb-1">🔥 Almuerzo Parrillero</h4>
-                                <ul class="text-sm space-y-1 ml-2">
-                                    <li class="font-semibold text-brand-red">• Lomo de Res 🥩</li>
-                                    <li>• Choripán con pebre y salsas</li>
-                                    <li>• Paleta de Helado 🍦</li>
-                                </ul>
-                            </div>
-                            <div class="border-t pt-2">
-                                <h4 class="font-bold text-sm text-gray-500 uppercase mb-1">🌇 Once</h4>
-                                <ul class="text-sm space-y-1 ml-2">
-                                    <li>• Completo Italiano 🌭</li>
-                                    <li>• Bebida, té y café</li>
-                                </ul>
-                            </div>
-                        </div>
-                        <button onclick="selectMenu('Menú 2')" class="mt-6 w-full block bg-brand-yellow text-brand-dark text-center py-3 rounded-lg font-bold hover:bg-yellow-400 transition">¡Lo Quiero! 🔥</button>
-                    </div>
-                </div>
-
-                <!-- Pack 3 -->
-                <div class="bg-white text-gray-800 rounded-xl overflow-hidden shadow-2xl transform hover:-translate-y-2 transition duration-300 flex flex-col h-full">
-                    <div class="h-48 overflow-hidden">
-                        <img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Hamburguesa" class="w-full h-full object-cover">
-                    </div>
-                    <div class="p-6 flex-grow flex flex-col">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-2xl font-bold text-brand-red">Menú 3</h3>
-                        </div>
-                        <div class="flex-grow space-y-4">
-                            <div>
-                                <h4 class="font-bold text-sm text-gray-500 uppercase mb-1">🌄 Desayuno</h4>
-                                <ul class="text-sm space-y-1 ml-2">
-                                    <li>• Marraqueta jamón/queso</li>
-                                    <li>• Leche, jugo, té y café</li>
-                                </ul>
-                            </div>
-                            <div class="border-t pt-2">
-                                <h4 class="font-bold text-sm text-gray-500 uppercase mb-1">🔥 Almuerzo Parrillero</h4>
-                                <ul class="text-sm space-y-1 ml-2">
-                                    <li class="font-semibold text-brand-red">• Lomo de Res 🥩</li>
-                                    <li>• Choripán con pebre y salsas</li>
-                                    <li>• Paleta de Helado 🍦</li>
-                                </ul>
-                            </div>
-                            <div class="border-t pt-2">
-                                <h4 class="font-bold text-sm text-gray-500 uppercase mb-1">🌇 Once</h4>
-                                <ul class="text-sm space-y-1 ml-2">
-                                    <li class="font-semibold text-brand-dark">• Hamburguesa Queso 🍔</li>
-                                    <li>• Bebida, té y café</li>
-                                </ul>
-                            </div>
-                        </div>
-                        <button onclick="selectMenu('Menú 3')" class="mt-6 w-full block bg-gray-900 text-white text-center py-3 rounded-lg font-bold hover:bg-brand-red transition">Experiencia VIP</button>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="mt-8 text-center bg-white/10 p-4 rounded-lg backdrop-blur-sm">
-                <p class="text-sm italic">Nota: El almuerzo base no incluye ensaladas ni bebestibles, pero puedes consultar por nuestro menú complementario.</p>
-            </div>
-        </div>
-    </section>
-
-    <!-- Instagram Simulated Section -->
-    <section id="galeria" class="py-20 bg-gray-50">
-        <div class="container mx-auto px-6">
-            <div class="text-center mb-12">
-                <i class="fab fa-instagram text-5xl bg-clip-text text-transparent bg-gradient-to-r from-purple-500 to-pink-500 mb-4"></i>
-                <h2 class="text-3xl md:text-4xl font-bold text-gray-800">Síguenos en Instagram</h2>
-                <a href="https://www.instagram.com/parrilla_y_cocina_/" target="_blank" class="text-brand-red font-semibold hover:underline text-lg">@parrilla_y_cocina_</a>
-                <p class="text-gray-500 mt-2">¡Mira cómo lo han pasado otros cursos! 📸</p>
-            </div>
-
-            <!-- Fake Grid (Looks like IG) -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <!-- Image 1: Parrilla llena (Similar a sus posts de asado) -->
-                <a href="https://www.instagram.com/parrilla_y_cocina_/" target="_blank" class="group relative block overflow-hidden rounded-lg aspect-square">
-                    <img src="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Parrilla llena" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
-                    <div class="absolute inset-0 insta-overlay opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center text-white space-x-4">
-                        <span><i class="fas fa-heart"></i> 124</span>
-                        <span><i class="fas fa-comment"></i> 12</span>
-                    </div>
-                </a>
-                <!-- Image 2: REEMPLAZADA (Estilo Parrilla Chilena/Carne a las brasas) -->
-                <a href="https://www.instagram.com/p/DE_RDIhN5MN/?img_index=1" target="_blank" class="group relative block overflow-hidden rounded-lg aspect-square">
-                    <img src="https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Carne a la parrilla lista" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
-                    <div class="absolute inset-0 insta-overlay opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center text-white space-x-4">
-                        <span><i class="fas fa-heart"></i> 156</span>
-                        <span><i class="fas fa-comment"></i> 8</span>
-                    </div>
-                </a>
-                <!-- Image 3: Grupo comiendo (Similar a ambiente de paseo) -->
-                <a href="https://www.instagram.com/parrilla_y_cocina_/" target="_blank" class="group relative block overflow-hidden rounded-lg aspect-square">
-                    <img src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Amigos comiendo" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
-                    <div class="absolute inset-0 insta-overlay opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center text-white space-x-4">
-                        <span><i class="fas fa-heart"></i> 256</span>
-                        <span><i class="fas fa-comment"></i> 34</span>
-                    </div>
-                </a>
-                <!-- Image 4: Preparación/Fuego (Similar a sus reels) -->
-                <a href="https://www.instagram.com/parrilla_y_cocina_/" target="_blank" class="group relative block overflow-hidden rounded-lg aspect-square">
-                    <img src="https://images.unsplash.com/photo-1594041680534-e8c8cdebd659?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Fuego asado" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
-                    <div class="absolute inset-0 insta-overlay opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center text-white space-x-4">
-                        <span><i class="fas fa-heart"></i> 140</span>
-                        <span><i class="fas fa-comment"></i> 18</span>
-                    </div>
-                </a>
-            </div>
-            
-            <div class="text-center mt-8">
-                <a href="https://www.instagram.com/parrilla_y_cocina_/" target="_blank" class="inline-block border-2 border-pink-500 text-pink-600 font-bold px-8 py-3 rounded-full hover:bg-pink-50 transition">
-                    Ver más en Instagram <i class="fas fa-arrow-right ml-2"></i>
-                </a>
-            </div>
-        </div>
-    </section>
-
-    <!-- Contacto Section -->
-    <section id="contacto" class="py-20 bg-white">
-        <div class="container mx-auto px-6 max-w-4xl">
-            <div class="bg-brand-dark text-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
-                <!-- Info Side -->
-                <div class="p-10 md:w-1/2 bg-brand-red flex flex-col justify-center">
-                    <h2 class="text-3xl font-bold mb-4">¿Listos para el mejor paseo? 🚌</h2>
-                    <p class="mb-8 text-red-100">Déjanos tus datos y te enviaremos una cotización personalizada para tu curso.</p>
-                    
-                    <div class="space-y-4">
-                        <div class="flex items-center">
-                            <i class="fab fa-whatsapp text-2xl w-10"></i>
-                            <span class="font-medium">+56 9 6708 3372</span>
-                        </div>
-                        <div class="flex items-center">
-                            <i class="fas fa-envelope text-2xl w-10"></i>
-                            <span class="font-medium">contacto@parrillaycocina.cl</span>
-                        </div>
-                        <div class="flex items-center">
-                            <i class="fas fa-map-marker-alt text-2xl w-10"></i>
-                            <span class="font-medium">Santiago y alrededores</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Form Side -->
-                <div class="p-10 md:w-1/2 bg-white text-gray-800">
-                    <form onsubmit="sendToWhatsapp(event)">
-                        <div class="mb-4">
-                            <label class="block text-sm font-bold mb-2">Nombre del Apoderado/Encargado</label>
-                            <input type="text" id="form-name" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-brand-red" placeholder="Ej: María Pérez" required>
-                        </div>
-                        <div class="mb-4">
-                            <label class="block text-sm font-bold mb-2">Curso / Colegio / Empresa</label>
-                            <input type="text" id="form-course" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-brand-red" placeholder="Ej: 4to Medio A o Empresa SA" required>
-                        </div>
-                        <div class="mb-4">
-                            <label class="block text-sm font-bold mb-2">Selecciona tu Menú</label>
-                            <select id="form-menu" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-brand-red bg-white cursor-pointer">
-                                <option value="Menú 1">Menú 1 (Pollo) 🍗</option>
-                                <option value="Menú 2">Menú 2 (Lomo) 🥩</option>
-                                <option value="Menú 3">Menú 3 (Hamburguesa) 🍔</option>
-                                <option value="Personalizado">Otro / Personalizado ✨</option>
-                            </select>
-                        </div>
-                        <div class="mb-4">
-                            <label class="block text-sm font-bold mb-2">Cantidad de Personas (Aprox)</label>
-                            <input type="number" id="form-quantity" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-brand-red" placeholder="Ej: 40" required>
-                        </div>
-                        <button type="submit" class="w-full bg-brand-dark text-white font-bold py-3 rounded-lg hover:bg-gray-800 transition transform hover:scale-105">
-                            <i class="fab fa-whatsapp mr-2"></i> Enviar a WhatsApp 🚀
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Footer -->
-    <footer class="bg-gray-900 text-white py-8">
-        <div class="container mx-auto px-6 text-center">
-            <p class="text-2xl font-bold mb-4 text-brand-red">🔥 Parrilla y Cocina</p>
-            <div class="flex justify-center space-x-6 mb-6">
-                <!-- Instagram -->
-                <a href="https://www.instagram.com/parrilla_y_cocina_/" target="_blank" class="hover:text-brand-orange transition text-2xl" title="Instagram">
-                    <i class="fab fa-instagram"></i>
-                </a>
-                <!-- Facebook -->
-                <a href="https://www.facebook.com/share/1DBr8XZ5L7/?mibextid=wwXIfr" target="_blank" class="hover:text-brand-orange transition text-2xl" title="Facebook">
-                    <i class="fab fa-facebook"></i>
-                </a>
-                <!-- TikTok (Actualizado) -->
-                <a href="https://www.tiktok.com/@parrilla.cocina?_r=1&_t=ZS-93UZinzVQxT" target="_blank" class="hover:text-brand-orange transition text-2xl" title="TikTok">
-                    <i class="fab fa-tiktok"></i>
-                </a>
-                <!-- WhatsApp -->
-                <a href="https://wa.me/56967083372" target="_blank" class="hover:text-brand-orange transition text-2xl" title="WhatsApp">
-                    <i class="fab fa-whatsapp"></i>
-                </a>
-            </div>
-            <p class="text-gray-500 text-sm">© 2024 Parrilla y Cocina. Todos los derechos reservados. | Diseñado para el disfrute.</p>
-        </div>
-    </footer>
-
-    <!-- WhatsApp Floating Button -->
-    <a href="https://wa.me/56967083372" target="_blank" class="fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-lg hover:bg-green-600 transition z-50 animate-bounce">
-        <i class="fab fa-whatsapp text-3xl"></i>
-    </a>
-
-    <!-- Scripts -->
     <script>
-        // Mobile Menu Toggle
-        function toggleMenu() {
-            const menu = document.getElementById('mobile-menu');
-            menu.classList.toggle('hidden');
+        // Lógica de Vistas (Router simple)
+        function checkHash() {
+            const hash = window.location.hash;
+            const publicView = document.getElementById('public-view');
+            const loginView = document.getElementById('login-view');
+            const adminView = document.getElementById('admin-view');
+
+            publicView.classList.add('hidden');
+            loginView.classList.add('hidden');
+            adminView.classList.add('hidden');
+
+            if (hash === '#admin') {
+                if (localStorage.getItem('isAdmin') === 'true') {
+                    adminView.classList.remove('hidden');
+                    window.renderAdminForms(); // Cargar formularios al entrar
+                } else {
+                    loginView.classList.remove('hidden');
+                }
+            } else {
+                publicView.classList.remove('hidden');
+            }
         }
 
-        // Change navbar style on scroll
-        window.addEventListener('scroll', function() {
-            const nav = document.querySelector('nav');
-            if (window.scrollY > 50) {
-                nav.classList.add('shadow-lg');
-                nav.classList.add('bg-white/95');
-            } else {
-                nav.classList.remove('shadow-lg');
-                nav.classList.remove('bg-white/95');
-            }
-        });
+        // Auth Lógica
+        function handleLogin(e) {
+            e.preventDefault();
+            const u = document.getElementById('username').value;
+            const p = document.getElementById('password').value;
 
-        // Function to select menu from cards and scroll to contact
+            if (u === 'cristian' && p === 'felipecata') {
+                localStorage.setItem('isAdmin', 'true');
+                window.location.reload(); // Recargar para aplicar vista
+            } else {
+                alert('Credenciales incorrectas');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('isAdmin');
+            window.location.hash = '';
+        }
+
+        // Navbar Toggle
+        function toggleMenu() {
+            document.getElementById('mobile-menu').classList.toggle('hidden');
+        }
+
         function selectMenu(menuName) {
             const select = document.getElementById('form-menu');
-            select.value = menuName;
-            
-            const contactSection = document.getElementById('contacto');
-            contactSection.scrollIntoView({ behavior: 'smooth' });
+            if(select) {
+                select.value = menuName;
+                document.getElementById('contacto').scrollIntoView({ behavior: 'smooth' });
+            }
         }
 
-        // WhatsApp Form Logic
+        // WhatsApp
         function sendToWhatsapp(event) {
             event.preventDefault();
-            
             const name = document.getElementById('form-name').value;
             const course = document.getElementById('form-course').value;
             const menu = document.getElementById('form-menu').value;
             const quantity = document.getElementById('form-quantity').value;
-
-            // Mensaje formateado con Emojis
             const message = `Hola! 👋 Me gustaría cotizar un asado.%0A%0A👤 *Nombre:* ${name}%0A🏢 *Curso/Empresa:* ${course}%0A🍖 *Menú:* ${menu}%0A👥 *Cantidad:* ${quantity} personas%0A%0AQuedo atento a su respuesta!`;
-
-            // Número de destino
-            const phoneNumber = "56967083372";
-            
-            // Abrir WhatsApp
-            window.open(`https://wa.me/${phoneNumber}?text=${message}`, '_blank');
+            window.open(`https://wa.me/56967083372?text=${message}`, '_blank');
         }
+
+        // Listener de cambios de URL
+        window.addEventListener('hashchange', checkHash);
+        window.addEventListener('load', checkHash);
     </script>
 </body>
 </html>
