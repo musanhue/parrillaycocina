@@ -17,22 +17,24 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, doc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-        // Configuración automática del entorno (o fallback para demo)
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "demo", authDomain: "demo", projectId: "demo" };
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'parrilla-cocina-demo';
+        // =================================================================================
+        // ⚙️ CONFIGURACIÓN DE FIREBASE (¡ACTUALIZADA!)
+        // =================================================================================
+        const myFirebaseConfig = {
+            apiKey: "AIzaSyBplqLjYHpyHK_sndx0GTkOP7LBGVoBIuw",
+            authDomain: "parrillaycocina-72d50.firebaseapp.com",
+            projectId: "parrillaycocina-72d50",
+            storageBucket: "parrillaycocina-72d50.firebasestorage.app",
+            messagingSenderId: "732351092429",
+            appId: "1:732351092429:web:3a4ae873cf28be5b27bb84"
+        };
+        // =================================================================================
+
         
-        // Inicializar Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-
-        // Autenticación anónima para leer/escribir en Firestore
-        signInAnonymously(auth).catch((error) => console.error("Error Auth:", error));
-
-        // Datos por defecto (para inicializar si la BD está vacía)
+        // Datos por defecto (Se usan si la BD está vacía)
         const defaultMenus = {
             menu1: {
                 title: "Menú 1",
@@ -66,98 +68,195 @@
             }
         };
 
-        // Estado Global
+        let db, auth;
         let currentMenus = JSON.parse(JSON.stringify(defaultMenus));
+        let isOfflineMode = false;
 
-        // Referencia al documento de menús (CORREGIDO: Apunta a un documento específico 'principal')
-        function getMenusRef() {
-            // Estructura: artifacts -> appId -> public -> data (doc) -> menus (collection) -> principal (doc)
-            return doc(db, 'artifacts', appId, 'public', 'data', 'menus', 'principal');
+        // Inicialización
+        async function initApp() {
+            // Verificamos si el usuario puso sus credenciales
+            if (myFirebaseConfig.apiKey === "TU_API_KEY_AQUI") {
+                console.warn("Falta configuración de Firebase. Iniciando Modo Offline.");
+                // Intentar usar configuración del entorno si existe (para vista previa)
+                if (typeof __firebase_config !== 'undefined') {
+                    try {
+                        const envConfig = JSON.parse(__firebase_config);
+                        startFirebase(envConfig);
+                    } catch(e) { enableOfflineMode(); }
+                } else {
+                    enableOfflineMode();
+                }
+                return;
+            }
+
+            // Si hay credenciales puestas manualmente
+            startFirebase(myFirebaseConfig);
         }
 
-        // Cargar datos en tiempo real
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
+        async function startFirebase(config) {
+            try {
+                const app = initializeApp(config);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                // Autenticación anónima
+                await signInAnonymously(auth);
+
+                // Listener de Auth
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        console.log("Conectado a Firebase como:", user.uid);
+                        setupFirestoreListener();
+                    } else {
+                        enableOfflineMode();
+                    }
+                });
+            } catch (e) {
+                console.error("Error iniciando Firebase:", e);
+                alert("Error de conexión con la base de datos. Verifica tu 'const myFirebaseConfig'.");
+                enableOfflineMode();
+            }
+        }
+
+        function getMenusRef() {
+            // Guardamos en una colección simple llamada 'contenidos' documento 'menus'
+            // Esto es más fácil de encontrar en tu consola de Firebase
+            return doc(db, 'contenidos', 'menus_web');
+        }
+
+        function setupFirestoreListener() {
+            try {
                 const menusRef = getMenusRef();
                 onSnapshot(menusRef, (docSnap) => {
                     if (docSnap.exists()) {
-                        currentMenus = docSnap.data();
-                        renderPublicMenus();
-                        // Si estamos en admin, refrescar formulario también
-                        if (!document.getElementById('admin-view').classList.contains('hidden')) {
-                            renderAdminForms();
+                        const data = docSnap.data();
+                        if (data.menu1) {
+                            currentMenus = data;
+                        } else {
+                            currentMenus = defaultMenus;
                         }
                     } else {
-                        // Si no existe, crearlo con los defaults
-                        setDoc(menusRef, defaultMenus);
+                        // Si es la primera vez, subimos los defaults
+                        setDoc(menusRef, defaultMenus).catch(err => console.error("Error creando doc inicial:", err));
+                        currentMenus = defaultMenus;
                     }
-                }, (error) => console.error("Error Firestore:", error));
+                    renderPublicMenus();
+                    if (!document.getElementById('admin-view').classList.contains('hidden')) {
+                        renderAdminForms();
+                    }
+                    // Quitar aviso offline si existe
+                    const notice = document.getElementById('offline-notice');
+                    if(notice) notice.remove();
+                    
+                }, (error) => {
+                    console.error("Error leyendo Firestore:", error);
+                    // Normalmente es por falta de permisos -> Modo prueba no activado
+                    if (error.code === 'permission-denied') {
+                        alert("Error de permisos: Asegúrate de habilitar 'Test Mode' (Modo Prueba) en las Reglas de Firestore.");
+                    }
+                    enableOfflineMode();
+                });
+            } catch (e) {
+                console.error("Listener Error:", e);
+                enableOfflineMode();
             }
-        });
+        }
 
-        // Funciones Globales para HTML
+        function enableOfflineMode() {
+            isOfflineMode = true;
+            currentMenus = defaultMenus;
+            renderPublicMenus();
+            
+            if(!document.getElementById('offline-notice')) {
+                const notice = document.createElement('div');
+                notice.id = 'offline-notice';
+                notice.className = "fixed bottom-4 left-4 bg-yellow-100 text-yellow-800 px-4 py-2 rounded shadow-lg text-xs z-50 border border-yellow-300";
+                notice.innerHTML = "<i class='fas fa-wifi-slash'></i> Modo Offline / Sin Configurar";
+                document.body.appendChild(notice);
+            }
+            
+            const saveBtn = document.getElementById('save-btn');
+            if(saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = "Offline - Configura Firebase para guardar";
+                saveBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+                saveBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
+            }
+        }
+
+        // Guardar cambios
         window.saveMenuChanges = async function() {
+            if (isOfflineMode) {
+                alert("Para guardar cambios, debes configurar la variable 'myFirebaseConfig' en el código con los datos de tu proyecto Firebase.");
+                return;
+            }
+
             const saveBtn = document.getElementById('save-btn');
             const originalText = saveBtn.innerHTML;
             saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
             saveBtn.disabled = true;
 
             try {
-                // Recopilar datos del formulario
                 const updatedMenus = {};
+                const getVal = (id) => {
+                    const el = document.getElementById(id);
+                    return el ? el.value : "";
+                };
+
                 ['menu1', 'menu2', 'menu3'].forEach(key => {
+                    const originalImg = currentMenus[key] ? currentMenus[key].image : defaultMenus[key].image;
                     updatedMenus[key] = {
-                        title: document.getElementById(`${key}-title`).value,
-                        badge: document.getElementById(`${key}-badge`).value,
-                        image: currentMenus[key].image, // Mantener imagen original por ahora
+                        title: getVal(`${key}-title`) || defaultMenus[key].title,
+                        badge: getVal(`${key}-badge`),
+                        image: originalImg,
                         sections: [
                             { 
-                                title: document.getElementById(`${key}-s1-title`).value, 
-                                items: document.getElementById(`${key}-s1-items`).value.split('\n').filter(i => i.trim()) 
+                                title: getVal(`${key}-s1-title`), 
+                                items: getVal(`${key}-s1-items`).split('\n').filter(i => i.trim()) 
                             },
                             { 
-                                title: document.getElementById(`${key}-s2-title`).value, 
-                                items: document.getElementById(`${key}-s2-items`).value.split('\n').filter(i => i.trim()) 
+                                title: getVal(`${key}-s2-title`), 
+                                items: getVal(`${key}-s2-items`).split('\n').filter(i => i.trim()) 
                             },
                             { 
-                                title: document.getElementById(`${key}-s3-title`).value, 
-                                items: document.getElementById(`${key}-s3-items`).value.split('\n').filter(i => i.trim()) 
+                                title: getVal(`${key}-s3-title`), 
+                                items: getVal(`${key}-s3-items`).split('\n').filter(i => i.trim()) 
                             }
                         ]
                     };
                 });
 
                 await setDoc(getMenusRef(), updatedMenus);
-                alert('¡Cambios guardados exitosamente! La página principal se ha actualizado.');
+                alert('¡Cambios guardados exitosamente en la nube! ✅');
+                
             } catch (e) {
-                console.error(e);
-                alert('Error al guardar cambios: ' + e.message);
+                console.error("Save Error:", e);
+                alert('Error al guardar: ' + e.message);
             } finally {
                 saveBtn.innerHTML = originalText;
                 saveBtn.disabled = false;
             }
         };
 
+        // Renderizado
         window.renderPublicMenus = function() {
             const container = document.getElementById('public-menus-container');
             if (!container) return;
             
             let html = '';
-            
-            // Helper para renderizar items
-            const renderItems = (items) => items.map(i => `<li>${i}</li>`).join('');
+            const renderItems = (items) => (items || []).map(i => `<li>${i}</li>`).join('');
 
             ['menu1', 'menu2', 'menu3'].forEach(key => {
-                const menu = currentMenus[key];
+                const menu = currentMenus[key] || defaultMenus[key];
                 let borderClass = key === 'menu2' ? 'border-4 border-brand-yellow relative' : '';
-                let badgeHtml = key === 'menu2' ? `<div class="absolute top-0 right-0 bg-brand-yellow text-brand-dark text-xs font-bold px-3 py-1 rounded-bl-lg z-10">${menu.badge}</div>` : 
+                let badgeHtml = key === 'menu2' ? `<div class="absolute top-0 right-0 bg-brand-yellow text-brand-dark text-xs font-bold px-3 py-1 rounded-bl-lg z-10">${menu.badge || ''}</div>` : 
                                (menu.badge ? `<div class="absolute top-0 left-0 bg-brand-red text-white text-xs font-bold px-3 py-1 rounded-br-lg">${menu.badge}</div>` : '');
 
                 html += `
                 <div class="bg-white text-gray-800 rounded-xl overflow-hidden shadow-2xl transform hover:-translate-y-2 transition duration-300 flex flex-col h-full ${borderClass}">
                     ${badgeHtml}
                     <div class="h-48 overflow-hidden relative">
-                        <img src="${menu.image}" alt="${menu.title}" class="w-full h-full object-cover">
+                        <img src="${menu.image}" alt="${menu.title}" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/800x600?text=Menu'">
                     </div>
                     <div class="p-6 flex-grow flex flex-col">
                         <div class="flex justify-between items-center mb-4">
@@ -179,7 +278,6 @@
             });
 
             container.innerHTML = html;
-            // Actualizar el select del formulario también
             updateFormSelect();
         };
 
@@ -189,7 +287,7 @@
 
             let html = '';
             ['menu1', 'menu2', 'menu3'].forEach(key => {
-                const menu = currentMenus[key];
+                const menu = currentMenus[key] || defaultMenus[key];
                 html += `
                 <div class="bg-white p-6 rounded-lg shadow-md mb-8 border-l-4 border-brand-red">
                     <h3 class="text-xl font-bold mb-4 text-brand-dark uppercase border-b pb-2">Editando: ${key}</h3>
@@ -201,7 +299,7 @@
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase">Etiqueta (Badge)</label>
-                            <input type="text" id="${key}-badge" value="${menu.badge}" class="w-full border p-2 rounded">
+                            <input type="text" id="${key}-badge" value="${menu.badge || ''}" class="w-full border p-2 rounded">
                         </div>
                     </div>
 
@@ -212,7 +310,7 @@
                                 <input type="text" id="${key}-s${idx+1}-title" value="${section.title}" class="w-full border p-2 rounded mb-2">
                                 
                                 <label class="block text-xs font-bold text-gray-500 mb-1">Ítems (uno por línea)</label>
-                                <textarea id="${key}-s${idx+1}-items" class="w-full border p-2 rounded h-24 font-mono text-sm">${section.items.join('\n')}</textarea>
+                                <textarea id="${key}-s${idx+1}-items" class="w-full border p-2 rounded h-24 font-mono text-sm">${(section.items || []).join('\n')}</textarea>
                             </div>
                         `).join('')}
                     </div>
@@ -224,21 +322,20 @@
         function updateFormSelect() {
             const select = document.getElementById('form-menu');
             if (!select) return;
-            // Guardar selección actual
             const currentVal = select.value;
-            
-            // Regenerar opciones
             let optionsHtml = '';
             ['menu1', 'menu2', 'menu3'].forEach(key => {
-                const title = currentMenus[key].title;
-                optionsHtml += `<option value="${title}">${title}</option>`;
+                const menu = currentMenus[key] || defaultMenus[key];
+                optionsHtml += `<option value="${menu.title}">${menu.title}</option>`;
             });
             optionsHtml += `<option value="Personalizado">Otro / Personalizado ✨</option>`;
-            
             select.innerHTML = optionsHtml;
-            // Restaurar si existe, o default
             if (currentVal) select.value = currentVal;
         }
+
+        // Iniciar
+        initApp();
+
     </script>
 
     <script>
