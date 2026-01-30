@@ -4,17 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Parrilla y Cocina | El Mejor Asado para tu Curso</title>
-    
-    <!-- METADATOS PARA WHATSAPP Y REDES SOCIALES -->
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://www.parrillaycocina.cl/">
-    <meta property="og:title" content="Parrilla y Cocina | El Mejor Asado para tu Curso 🍖🔥">
-    <meta property="og:description" content="¡Relájate y disfruta! Nosotros llevamos la parrilla, la comida y el servicio completo. Cotiza tu paseo de curso o empresa aquí.">
-    <meta property="og:image" content="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
-    <!-- FIN METADATOS -->
-
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍖</text></svg>">
     
     <!-- Tailwind CSS -->
@@ -102,7 +91,7 @@
         let appData = JSON.parse(JSON.stringify(defaultData));
         let isOfflineMode = false;
         let hasLoggedFormView = false;
-        let myChart = null; // Variable para guardar el gráfico actual
+        let myChart = null; 
 
         async function initApp() {
             try {
@@ -125,13 +114,11 @@
 
         function getDataRef() { return doc(db, 'web_data', 'contenido_principal'); }
         function getStatsRef() { return doc(db, 'web_data', 'estadisticas'); }
-        // Referencia para estadísticas diarias
         function getDailyStatsRef(dateStr) { return doc(db, 'web_data', 'estadisticas', 'history', dateStr); }
 
         window.trackEvent = async function(metric) {
             if (isOfflineMode || window.location.hash === '#admin') return;
             try {
-                // 1. Actualizar Total Global
                 const statsRef = getStatsRef();
                 const globalUpdate = updateDoc(statsRef, { [metric]: increment(1) }).catch(async (err) => {
                     if (err.code === 'not-found') {
@@ -139,13 +126,10 @@
                     }
                 });
 
-                // 2. Actualizar Diario (Nuevo para los gráficos)
-                const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+                const today = new Date().toISOString().split('T')[0];
                 const dailyRef = getDailyStatsRef(today);
-                
                 const dailyUpdate = updateDoc(dailyRef, { [metric]: increment(1) }).catch(async (err) => {
                     if (err.code === 'not-found') {
-                        // Si no existe el doc de hoy, lo creamos
                         await setDoc(dailyRef, { views: 0, menu_clicks: 0, form_reached: 0, conversions: 0 });
                         await updateDoc(dailyRef, { [metric]: increment(1) });
                     }
@@ -197,7 +181,6 @@
             document.getElementById('chart-title').innerText = `Historial: ${title}`;
             modal.classList.remove('hidden');
             
-            // Generar los últimos 10 días
             const labels = [];
             const dataPromises = [];
             const today = new Date();
@@ -206,18 +189,15 @@
                 const d = new Date(today);
                 d.setDate(d.getDate() - i);
                 const dateStr = d.toISOString().split('T')[0];
-                labels.push(dateStr.slice(5)); // Mostrar solo MM-DD
+                labels.push(dateStr.slice(5)); 
                 dataPromises.push(getDoc(getDailyStatsRef(dateStr)));
             }
 
-            // Obtener datos
             const docs = await Promise.all(dataPromises);
             const dataValues = docs.map(d => (d.exists() ? (d.data()[metricKey] || 0) : 0));
 
-            // Destruir gráfico anterior si existe
             if (myChart) myChart.destroy();
 
-            // Crear nuevo gráfico
             myChart = new Chart(canvas, {
                 type: 'line',
                 data: {
@@ -226,7 +206,7 @@
                         label: title,
                         data: dataValues,
                         borderColor: color,
-                        backgroundColor: color + '33', // Transparencia
+                        backgroundColor: color + '33',
                         borderWidth: 2,
                         fill: true,
                         tension: 0.4
@@ -401,7 +381,7 @@
         window.sendToWhatsapp = (e) => {
             e.preventDefault(); trackEvent('conversions');
             const d = { n: document.getElementById('form-name').value, c: document.getElementById('form-course').value, m: document.getElementById('form-menu').value, q: document.getElementById('form-quantity').value };
-            window.open(`https://wa.me/56967083372?text=Hola! Cotización:%0A👤 ${d.n}%0A🏢 ${d.c}%0A🍖 ${d.m}%0A👥 ${d.q} personas`, '_blank');
+            window.open(`https://wa.me/56967083372?text=Hola! 👋 Me gustaría cotizar un asado.%0A%0A👤 *Nombre:* ${d.n}%0A🏢 *Curso/Empresa:* ${d.c}%0A🍖 *Menú:* ${d.m}%0A👥 *Cantidad:* ${d.q} personas%0A%0AQuedo atento a su respuesta!`, '_blank');
         };
 
         window.checkHash = () => {
@@ -479,17 +459,17 @@
                     🎓 ¡Temporada de Paseos 2026-2027!
                 </div>
                 <h1 class="text-4xl md:text-6xl font-bold mb-6 leading-tight drop-shadow-lg">
-                    El Mejor Asado para tu <span class="text-brand-yellow">Paseo de Curso</span> 🍖🔥
+                    El Mejor Asado para tu <span class="text-brand-yellow">Paseo de Curso y Particulares</span> 🍖🔥
                 </h1>
                 <p class="text-xl md:text-2xl mb-8 font-light drop-shadow-md">
-                    Relájate y disfruta. Nosotros ponemos la parrilla, la carne y la buena onda. ¡Servicio completo para colegios!
+                    Relájate y disfruta. Nosotros llevamos el sabor, la carne y la buena onda. ¡Servicio completo para colegios!
                 </p>
                 <div class="flex flex-col md:flex-row gap-4 justify-center">
-                    <a href="#contacto" class="bg-brand-red hover:bg-red-700 text-white px-8 py-4 rounded-full text-lg font-bold transition transform hover:-translate-y-1 shadow-xl">
+                    <a href="#contacto" class="bg-brand-red hover:bg-red-700 text-white px-8 py-4 rounded-full text-lg font-bold transition transform hover:-translate-y-1 shadow-xl border-2 border-transparent hover:border-white">
                         Solicitar Presupuesto 🚌
                     </a>
-                    <a href="https://www.instagram.com/parrilla_y_cocina_/" target="_blank" class="bg-white hover:bg-gray-100 text-gray-900 px-8 py-4 rounded-full text-lg font-bold transition flex items-center justify-center gap-2">
-                        <i class="fab fa-instagram text-pink-600 text-xl"></i> Ver Fotos
+                    <a href="#galeria" class="bg-white hover:bg-gray-100 text-gray-900 px-8 py-4 rounded-full text-lg font-bold transition flex items-center justify-center gap-2">
+                        <i class="fas fa-images text-pink-600 text-xl"></i> Ver Fotos
                     </a>
                 </div>
             </div>
@@ -502,7 +482,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
                     <div class="bg-gray-50 p-8 rounded-2xl shadow-lg border-b-4 border-brand-red hover-scale"><span class="text-3xl block mb-4">👨‍🍳</span><h3 class="text-xl font-bold mb-3">Expertos Parrilleros</h3><p class="text-gray-600">Nuestro equipo sabe exactamente el punto de la carne. ¡Nadie se queda con hambre!</p></div>
                     <div class="bg-gray-50 p-8 rounded-2xl shadow-lg border-b-4 border-brand-orange hover-scale"><span class="text-3xl block mb-4">🥗</span><h3 class="text-xl font-bold mb-3">Opciones para Todos</h3><p class="text-gray-600">Menús vegetarianos y veganos. ¡Sin problema!</p></div>
-                    <div class="bg-gray-50 p-8 rounded-2xl shadow-lg border-b-4 border-brand-yellow hover-scale"><span class="text-3xl block mb-4">⚡</span><h3 class="text-xl font-bold mb-3">Servicio Full</h3><p class="text-gray-600">Llevamos todo: parrillas, carbón y platos.</p></div>
+                    <div class="bg-gray-50 p-8 rounded-2xl shadow-lg border-b-4 border-brand-yellow hover-scale"><span class="text-3xl block mb-4">⚡</span><h3 class="text-xl font-bold mb-3">Servicio Full</h3><p class="text-gray-600">Llevamos todo: el sabor, la carne y hasta el carbon.</p></div>
                 </div>
             </div>
         </section>
@@ -558,20 +538,9 @@
                     <!-- Info Side -->
                     <div class="p-10 md:w-1/2 bg-brand-red flex flex-col justify-center">
                         <h2 class="text-3xl font-bold mb-4">¿Listos para el mejor paseo? 🚌</h2>
-                        <p class="mb-8 text-red-100">Déjanos tus datos y te enviaremos una cotización personalizada para tu curso.</p>
-                        <div class="space-y-4">
-                            <div class="flex items-center">
-                                <i class="fab fa-whatsapp text-2xl w-10"></i>
-                                <span class="font-medium">+56 9 6708 3372</span>
-                            </div>
-                            <div class="flex items-center">
-                                <i class="fas fa-envelope text-2xl w-10"></i>
-                                <span class="font-medium">contacto@parrillaycocina.cl</span>
-                            </div>
-                            <div class="flex items-center">
-                                <i class="fas fa-map-marker-alt text-2xl w-10"></i>
-                                <span class="font-medium">Santiago y alrededores</span>
-                            </div>
+                        <div class="space-y-4 font-medium">
+                            <div class="flex items-center"><i class="fab fa-whatsapp text-2xl w-10"></i> +56 9 6708 3372</div>
+                            <div class="flex items-center"><i class="fas fa-envelope text-2xl w-10"></i> contacto@parrillaycocina.cl</div>
                         </div>
                     </div>
 
