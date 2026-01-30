@@ -4,326 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Parrilla y Cocina | El Mejor Asado para tu Curso</title>
-    <!-- Favicon de Asado -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍖</text></svg>">
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
     
-    <!-- Firebase SDKs -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, doc, setDoc, updateDoc, increment, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-
-        // =================================================================================
-        // ⚙️ CONFIGURACIÓN DE FIREBASE
-        // =================================================================================
-        const myFirebaseConfig = {
-            apiKey: "AIzaSyBplqLjYHpyHK_sndx0GTkOP7LBGVoBIuw",
-            authDomain: "parrillaycocina-72d50.firebaseapp.com",
-            projectId: "parrillaycocina-72d50",
-            storageBucket: "parrillaycocina-72d50.firebasestorage.app",
-            messagingSenderId: "732351092429",
-            appId: "1:732351092429:web:3a4ae873cf28be5b27bb84"
-        };
-        // =================================================================================
-
-        
-        // Datos por defecto (Se usan si la BD está vacía)
-        const defaultMenus = {
-            menu1: {
-                title: "Menú 1",
-                badge: "Económico",
-                image: "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-                sections: [
-                    { title: "🌄 Desayuno", items: ["• Marraqueta jamón/queso", "• Leche, jugo, té y café"] },
-                    { title: "🔥 Almuerzo Parrillero", items: ["• Trutro entero de pollo 🍗", "• Choripán con pebre y salsas", "• Paleta de Helado 🍦"] },
-                    { title: "🌇 Once", items: ["• Completo Italiano 🌭", "• Bebida, té y café"] }
-                ]
-            },
-            menu2: {
-                title: "Menú 2",
-                badge: "RECOMENDADO",
-                image: "https://images.unsplash.com/photo-1600891964092-4316c288032e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-                sections: [
-                    { title: "🌄 Desayuno", items: ["• Marraqueta jamón/queso", "• Leche, jugo, té y café"] },
-                    { title: "🔥 Almuerzo Parrillero", items: ["• Lomo de Res 🥩", "• Choripán con pebre y salsas", "• Paleta de Helado 🍦"] },
-                    { title: "🌇 Once", items: ["• Completo Italiano 🌭", "• Bebida, té y café"] }
-                ]
-            },
-            menu3: {
-                title: "Menú 3",
-                badge: "VIP",
-                image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-                sections: [
-                    { title: "🌄 Desayuno", items: ["• Marraqueta jamón/queso", "• Leche, jugo, té y café"] },
-                    { title: "🔥 Almuerzo Parrillero", items: ["• Lomo de Res 🥩", "• Choripán con pebre y salsas", "• Paleta de Helado 🍦"] },
-                    { title: "🌇 Once", items: ["• Hamburguesa Queso 🍔", "• Bebida, té y café"] }
-                ]
-            }
-        };
-
-        let db, auth;
-        let currentMenus = JSON.parse(JSON.stringify(defaultMenus));
-        let isOfflineMode = false;
-        let hasLoggedFormView = false; // Para no contar scroll repetido en la misma sesión
-
-        // Inicialización
-        async function initApp() {
-            // Verificamos si el usuario puso sus credenciales
-            if (myFirebaseConfig.apiKey === "TU_API_KEY_AQUI") {
-                enableOfflineMode();
-                return;
-            }
-            startFirebase(myFirebaseConfig);
-        }
-
-        async function startFirebase(config) {
-            try {
-                const app = initializeApp(config);
-                db = getFirestore(app);
-                auth = getAuth(app);
-
-                // Autenticación anónima
-                await signInAnonymously(auth);
-
-                // Listener de Auth
-                onAuthStateChanged(auth, (user) => {
-                    if (user) {
-                        console.log("Conectado a Firebase");
-                        setupFirestoreListener();
-                        // Registrar Visita (si no es admin)
-                        if (window.location.hash !== '#admin') {
-                            trackEvent('views');
-                        }
-                    } else {
-                        enableOfflineMode();
-                    }
-                });
-            } catch (e) {
-                console.error("Error iniciando Firebase:", e);
-                enableOfflineMode();
-            }
-        }
-
-        function getMenusRef() {
-            return doc(db, 'contenidos', 'menus_web');
-        }
-        
-        function getStatsRef() {
-            return doc(db, 'contenidos', 'stats_web');
-        }
-
-        // --- SISTEMA DE ANALÍTICAS ---
-        window.trackEvent = async function(metric) {
-            if (isOfflineMode || window.location.hash === '#admin') return;
-            try {
-                const statsRef = getStatsRef();
-                // Usamos update con increment para contar atómicamente
-                await updateDoc(statsRef, {
-                    [metric]: increment(1)
-                }).catch(async (err) => {
-                    // Si el documento no existe, lo creamos
-                    if (err.code === 'not-found') {
-                        await setDoc(statsRef, { views: 0, menu_clicks: 0, form_reached: 0, conversions: 0 });
-                        await updateDoc(statsRef, { [metric]: increment(1) });
-                    }
-                });
-            } catch (e) {
-                console.error("Error tracking:", e);
-            }
-        };
-
-        // Escuchar estadísticas para el admin
-        function setupStatsListener() {
-            const statsRef = getStatsRef();
-            onSnapshot(statsRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    renderAdminStats(docSnap.data());
-                }
-            });
-        }
-
-        function setupFirestoreListener() {
-            try {
-                const menusRef = getMenusRef();
-                onSnapshot(menusRef, (docSnap) => {
-                    if (docSnap.exists()) {
-                        const data = docSnap.data();
-                        currentMenus = data.menu1 ? data : defaultMenus;
-                    } else {
-                        setDoc(menusRef, defaultMenus);
-                        currentMenus = defaultMenus;
-                    }
-                    renderPublicMenus();
-                    if (!document.getElementById('admin-view').classList.contains('hidden')) {
-                        renderAdminForms();
-                        setupStatsListener(); // Iniciar listener de stats si es admin
-                    }
-                });
-            } catch (e) {
-                enableOfflineMode();
-            }
-        }
-
-        function enableOfflineMode() {
-            isOfflineMode = true;
-            currentMenus = defaultMenus;
-            renderPublicMenus();
-            // Deshabilitar UI admin...
-        }
-
-        // Guardar cambios del menú
-        window.saveMenuChanges = async function() {
-            if (isOfflineMode) { alert("Modo Offline."); return; }
-            const saveBtn = document.getElementById('save-btn');
-            const originalText = saveBtn.innerHTML;
-            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
-            saveBtn.disabled = true;
-
-            try {
-                const updatedMenus = {};
-                const getVal = (id) => document.getElementById(id)?.value || "";
-                ['menu1', 'menu2', 'menu3'].forEach(key => {
-                    const originalImg = currentMenus[key] ? currentMenus[key].image : defaultMenus[key].image;
-                    updatedMenus[key] = {
-                        title: getVal(`${key}-title`) || defaultMenus[key].title,
-                        badge: getVal(`${key}-badge`),
-                        image: originalImg,
-                        sections: [
-                            { title: getVal(`${key}-s1-title`), items: getVal(`${key}-s1-items`).split('\n').filter(i => i.trim()) },
-                            { title: getVal(`${key}-s2-title`), items: getVal(`${key}-s2-items`).split('\n').filter(i => i.trim()) },
-                            { title: getVal(`${key}-s3-title`), items: getVal(`${key}-s3-items`).split('\n').filter(i => i.trim()) }
-                        ]
-                    };
-                });
-                await setDoc(getMenusRef(), updatedMenus);
-                alert('¡Cambios guardados exitosamente! ✅');
-            } catch (e) {
-                alert('Error al guardar: ' + e.message);
-            } finally {
-                saveBtn.innerHTML = originalText;
-                saveBtn.disabled = false;
-            }
-        };
-
-        // Renderizado Menús Públicos
-        window.renderPublicMenus = function() {
-            const container = document.getElementById('public-menus-container');
-            if (!container) return;
-            let html = '';
-            const renderItems = (items) => (items || []).map(i => `<li>${i}</li>`).join('');
-
-            ['menu1', 'menu2', 'menu3'].forEach(key => {
-                const menu = currentMenus[key] || defaultMenus[key];
-                let borderClass = key === 'menu2' ? 'border-4 border-brand-yellow relative' : '';
-                let badgeHtml = key === 'menu2' ? `<div class="absolute top-0 right-0 bg-brand-yellow text-brand-dark text-xs font-bold px-3 py-1 rounded-bl-lg z-10">${menu.badge || ''}</div>` : 
-                               (menu.badge ? `<div class="absolute top-0 left-0 bg-brand-red text-white text-xs font-bold px-3 py-1 rounded-br-lg">${menu.badge}</div>` : '');
-                html += `
-                <div class="bg-white text-gray-800 rounded-xl overflow-hidden shadow-2xl transform hover:-translate-y-2 transition duration-300 flex flex-col h-full ${borderClass}">
-                    ${badgeHtml}
-                    <div class="h-48 overflow-hidden relative">
-                        <img src="${menu.image}" alt="${menu.title}" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/800x600?text=Menu'">
-                    </div>
-                    <div class="p-6 flex-grow flex flex-col">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-2xl font-bold text-brand-red">${menu.title}</h3>
-                        </div>
-                        <div class="flex-grow space-y-4">
-                            ${menu.sections.map((section, index) => `
-                                <div class="${index > 0 ? 'border-t pt-2' : ''}">
-                                    <h4 class="font-bold text-sm text-gray-500 uppercase mb-1">${section.title}</h4>
-                                    <ul class="text-sm space-y-1 ml-2">
-                                        ${renderItems(section.items)}
-                                    </ul>
-                                </div>
-                            `).join('')}
-                        </div>
-                        <button onclick="selectMenu('${menu.title}')" class="mt-6 w-full block ${key === 'menu2' ? 'bg-brand-yellow text-brand-dark hover:bg-yellow-400' : 'bg-gray-900 text-white hover:bg-brand-red'} text-center py-3 rounded-lg font-bold transition">Cotizar Este Menú</button>
-                    </div>
-                </div>`;
-            });
-            container.innerHTML = html;
-            updateFormSelect();
-        };
-
-        // Renderizado Admin Forms
-        window.renderAdminForms = function() {
-            const container = document.getElementById('admin-forms-container');
-            if (!container) return;
-            let html = '';
-            ['menu1', 'menu2', 'menu3'].forEach(key => {
-                const menu = currentMenus[key] || defaultMenus[key];
-                html += `
-                <div class="bg-white p-6 rounded-lg shadow-md mb-8 border-l-4 border-brand-red">
-                    <h3 class="text-xl font-bold mb-4 text-brand-dark uppercase border-b pb-2">Editando: ${key}</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div><label class="block text-xs font-bold text-gray-500 uppercase">Título</label><input type="text" id="${key}-title" value="${menu.title}" class="w-full border p-2 rounded"></div>
-                        <div><label class="block text-xs font-bold text-gray-500 uppercase">Etiqueta</label><input type="text" id="${key}-badge" value="${menu.badge || ''}" class="w-full border p-2 rounded"></div>
-                    </div>
-                    <div class="space-y-4">
-                        ${menu.sections.map((section, idx) => `
-                            <div class="bg-gray-50 p-3 rounded">
-                                <label class="block text-xs font-bold text-brand-red mb-1">Sección ${idx + 1}: Título</label>
-                                <input type="text" id="${key}-s${idx+1}-title" value="${section.title}" class="w-full border p-2 rounded mb-2">
-                                <label class="block text-xs font-bold text-gray-500 mb-1">Ítems (uno por línea)</label>
-                                <textarea id="${key}-s${idx+1}-items" class="w-full border p-2 rounded h-24 font-mono text-sm">${(section.items || []).join('\n')}</textarea>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>`;
-            });
-            container.innerHTML = html;
-        }
-
-        // Renderizado Stats Admin
-        window.renderAdminStats = function(stats) {
-            document.getElementById('stat-views').innerText = stats.views || 0;
-            document.getElementById('stat-clicks').innerText = stats.menu_clicks || 0;
-            document.getElementById('stat-forms').innerText = stats.form_reached || 0;
-            document.getElementById('stat-conversions').innerText = stats.conversions || 0;
-        }
-
-        function updateFormSelect() {
-            const select = document.getElementById('form-menu');
-            if (!select) return;
-            const currentVal = select.value;
-            let optionsHtml = '';
-            ['menu1', 'menu2', 'menu3'].forEach(key => {
-                const menu = currentMenus[key] || defaultMenus[key];
-                optionsHtml += `<option value="${menu.title}">${menu.title}</option>`;
-            });
-            optionsHtml += `<option value="Personalizado">Otro / Personalizado ✨</option>`;
-            select.innerHTML = optionsHtml;
-            if (currentVal) select.value = currentVal;
-        }
-
-        // Setup Intersection Observer para trackear formulario
-        window.setupFormObserver = function() {
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting && !hasLoggedFormView) {
-                        trackEvent('form_reached');
-                        hasLoggedFormView = true;
-                    }
-                });
-            }, { threshold: 0.5 });
-            
-            const contactSection = document.getElementById('contacto');
-            if (contactSection) observer.observe(contactSection);
-        }
-
-        initApp();
-        // Inicializar observador al cargar
-        window.addEventListener('load', setupFormObserver);
-
-    </script>
-
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <script>
         tailwind.config = {
             theme: {
@@ -351,42 +42,444 @@
             background-size: cover;
             background-position: center;
         }
+        .accordion-content {
+            transition: max-height 0.3s ease-out;
+            max-height: 0;
+            overflow: hidden;
+        }
+        .accordion-active .accordion-content {
+            max-height: 200px;
+        }
+        .accordion-active .fa-chevron-down {
+            transform: rotate(180deg);
+        }
     </style>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, doc, setDoc, updateDoc, increment, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+
+        // TU CONFIGURACIÓN
+        const myFirebaseConfig = {
+            apiKey: "AIzaSyBplqLjYHpyHK_sndx0GTkOP7LBGVoBIuw",
+            authDomain: "parrillaycocina-72d50.firebaseapp.com",
+            projectId: "parrillaycocina-72d50",
+            storageBucket: "parrillaycocina-72d50.firebasestorage.app",
+            messagingSenderId: "732351092429",
+            appId: "1:732351092429:web:3a4ae873cf28be5b27bb84"
+        };
+
+        // --- Datos por Defecto ---
+        const defaultData = {
+            menus: {
+                menu1: {
+                    title: "Menú 1", badge: "Económico", image: "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                    sections: [{ title: "🌄 Desayuno", items: ["• Marraqueta jamón/queso", "• Leche, jugo, té y café"] }, { title: "🔥 Almuerzo Parrillero", items: ["• Trutro entero de pollo 🍗", "• Choripán con pebre y salsas", "• Paleta de Helado 🍦"] }, { title: "🌇 Once", items: ["• Completo Italiano 🌭", "• Bebida, té y café"] }]
+                },
+                menu2: {
+                    title: "Menú 2", badge: "RECOMENDADO", image: "https://images.unsplash.com/photo-1600891964092-4316c288032e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                    sections: [{ title: "🌄 Desayuno", items: ["• Marraqueta jamón/queso", "• Leche, jugo, té y café"] }, { title: "🔥 Almuerzo Parrillero", items: ["• Lomo de Res 🥩", "• Choripán con pebre y salsas", "• Paleta de Helado 🍦"] }, { title: "🌇 Once", items: ["• Completo Italiano 🌭", "• Bebida, té y café"] }]
+                },
+                menu3: {
+                    title: "Menú 3", badge: "VIP", image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                    sections: [{ title: "🌄 Desayuno", items: ["• Marraqueta jamón/queso", "• Leche, jugo, té y café"] }, { title: "🔥 Almuerzo Parrillero", items: ["• Lomo de Res 🥩", "• Choripán con pebre y salsas", "• Paleta de Helado 🍦"] }, { title: "🌇 Once", items: ["• Hamburguesa Queso 🍔", "• Bebida, té y café"] }]
+                }
+            },
+            testimonials: [
+                { name: "María González", detail: "4to Medio - Colegio San Agustín", text: "Excelente servicio, la carne estaba en su punto y la atención de los parrilleros un 7.", color: "bg-brand-red" },
+                { name: "Carlos Muñoz", detail: "8vo Básico - Colegio Cumbres", text: "Lo mejor fue el desayuno y la once, completísimo. 100% recomendados.", color: "bg-brand-yellow" }
+            ],
+            faqs: [
+                { q: "¿Incluyen opciones para vegetarianos?", a: "¡Sí! Nos adaptamos a las necesidades de tu curso. Solo debes avisarnos con anticipación." },
+                { q: "¿Qué pasa si llueve?", a: "Nosotros llevamos carpas para la parrilla, pero es ideal un quincho techado." }
+            ],
+            gallery: [
+                { url: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", likes: 124 },
+                { url: "https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", likes: 156 },
+                { url: "https://images.unsplash.com/photo-1528605248644-14dd04022da1?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", likes: 256 },
+                { url: "https://images.unsplash.com/photo-1594041680534-e8c8cdebd659?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", likes: 140 }
+            ]
+        };
+
+        let db, auth, storage;
+        let appData = JSON.parse(JSON.stringify(defaultData));
+        let isOfflineMode = false;
+        let hasLoggedFormView = false;
+
+        async function initApp() {
+            try {
+                const app = initializeApp(myFirebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                storage = getStorage(app);
+                await signInAnonymously(auth);
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        setupFirestoreListener();
+                        if (window.location.hash !== '#admin') trackEvent('views');
+                    } else enableOfflineMode();
+                });
+            } catch (e) {
+                console.error("Firebase Error:", e);
+                enableOfflineMode();
+            }
+        }
+
+        function getDataRef() { return doc(db, 'contenidos', 'web_v6_final'); }
+        function getStatsRef() { return doc(db, 'contenidos', 'stats_web'); }
+
+        window.trackEvent = async function(metric) {
+            if (isOfflineMode || window.location.hash === '#admin') return;
+            try {
+                const statsRef = getStatsRef();
+                await updateDoc(statsRef, { [metric]: increment(1) }).catch(async (err) => {
+                    if (err.code === 'not-found') {
+                        await setDoc(statsRef, { views: 0, menu_clicks: 0, form_reached: 0, conversions: 0 });
+                        await updateDoc(statsRef, { [metric]: increment(1) });
+                    }
+                });
+            } catch (e) { console.error(e); }
+        };
+
+        function setupFirestoreListener() {
+            onSnapshot(getDataRef(), (docSnap) => {
+                if (docSnap.exists()) appData = docSnap.data();
+                else setDoc(getDataRef(), defaultData);
+                renderAll();
+            }, () => enableOfflineMode());
+            
+            if (document.getElementById('admin-view')) {
+                onSnapshot(getStatsRef(), (doc) => { if(doc.exists()) renderAdminStats(doc.data()); });
+            }
+        }
+
+        function enableOfflineMode() {
+            isOfflineMode = true;
+            appData = defaultData;
+            renderAll();
+        }
+
+        function renderAll() {
+            renderPublicMenus();
+            renderPublicTestimonials();
+            renderPublicFaqs();
+            renderPublicGallery();
+            if (!document.getElementById('admin-view').classList.contains('hidden')) renderAdminContent();
+        }
+
+        // --- FUNCIONES DE UPLOAD ---
+        window.uploadFile = async function(file) {
+            if (!file) return null;
+            const storageRef = ref(storage, 'uploads/' + Date.now() + '_' + file.name);
+            await uploadBytes(storageRef, file);
+            return await getDownloadURL(storageRef);
+        }
+
+        // --- UI PÚBLICA (Restaurado Diseño Exacto) ---
+        function renderPublicMenus() {
+            const container = document.getElementById('public-menus-container');
+            if (!container) return;
+            let html = '';
+            ['menu1', 'menu2', 'menu3'].forEach(key => {
+                const menu = appData.menus[key];
+                let borderClass = key === 'menu2' ? 'border-4 border-brand-yellow relative' : '';
+                // Restauramos estructura HTML exacta del diseño original
+                let badgeHtml = key === 'menu2' ? 
+                    `<div class="absolute top-0 right-0 bg-brand-yellow text-brand-dark text-xs font-bold px-3 py-1 rounded-bl-lg z-10">${menu.badge}</div>` : 
+                    (menu.badge ? `<div class="absolute top-0 left-0 bg-brand-red text-white text-xs font-bold px-3 py-1 rounded-br-lg">${menu.badge}</div>` : '');
+                
+                const sections = menu.sections.map((s, i) => `
+                    <div class="${i>0?'border-t pt-2':''}">
+                        <h4 class="font-bold text-sm text-gray-500 uppercase mb-1">${s.title}</h4>
+                        <ul class="text-sm space-y-1 ml-2">
+                            ${s.items.map(it=>`<li>${it}</li>`).join('')}
+                        </ul>
+                    </div>`).join('');
+                
+                html += `
+                <div class="bg-white text-gray-800 rounded-xl overflow-hidden shadow-2xl transform hover:-translate-y-2 transition duration-300 flex flex-col h-full ${borderClass}">
+                    ${badgeHtml}
+                    <div class="h-48 overflow-hidden relative">
+                        <img src="${menu.image}" class="w-full h-full object-cover">
+                    </div>
+                    <div class="p-6 flex-grow flex flex-col">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-2xl font-bold text-brand-red">${menu.title}</h3>
+                        </div>
+                        <div class="flex-grow space-y-4">
+                            ${sections}
+                        </div>
+                        <button onclick="selectMenu('${menu.title}')" class="mt-6 w-full block ${key==='menu2'?'bg-brand-yellow text-brand-dark hover:bg-yellow-400':'bg-gray-900 text-white hover:bg-brand-red'} text-center py-3 rounded-lg font-bold transition">Cotizar Este Menú</button>
+                    </div>
+                </div>`;
+            });
+            container.innerHTML = html;
+            updateFormSelect();
+        }
+
+        function renderPublicTestimonials() {
+            const container = document.getElementById('testimonials-container');
+            if (!container) return;
+            container.innerHTML = appData.testimonials.map(t => `
+                <div class="bg-white p-6 rounded-xl shadow-md border-t-4 ${t.color || 'border-brand-red'} relative">
+                    <i class="fas fa-quote-left text-4xl text-gray-200 absolute top-4 left-4"></i>
+                    <p class="text-gray-600 italic mb-4 relative z-10">"${t.text}"</p>
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 ${t.color ? t.color.replace('border-', 'bg-') : 'bg-brand-red'} rounded-full flex items-center justify-center text-white font-bold">${t.name.charAt(0)}</div>
+                        <div class="ml-3"><p class="font-bold text-sm">${t.name}</p><p class="text-xs text-gray-500">${t.detail}</p></div>
+                    </div>
+                </div>`).join('');
+        }
+
+        function renderPublicFaqs() {
+            const container = document.getElementById('faq-container');
+            if (!container) return;
+            container.innerHTML = appData.faqs.map((f, i) => `
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    <button onclick="toggleFaq(this)" class="w-full text-left px-6 py-4 font-bold text-brand-dark flex justify-between items-center focus:outline-none">
+                        <span>${f.q}</span><i class="fas fa-chevron-down transition-transform duration-300"></i>
+                    </button>
+                    <div class="accordion-content bg-gray-50 px-6 text-gray-600"><p class="py-4">${f.a}</p></div>
+                </div>`).join('');
+        }
+
+        function renderPublicGallery() {
+            const container = document.getElementById('gallery-container');
+            if (!container) return;
+            // Restauramos estructura HTML exacta de la galería original
+            container.innerHTML = appData.gallery.map(img => `
+                <a href="${img.url}" target="_blank" class="group relative block overflow-hidden rounded-lg aspect-square">
+                    <img src="${img.url}" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
+                    <div class="absolute inset-0 insta-overlay opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center text-white space-x-4">
+                        <span><i class="fas fa-heart"></i> ${img.likes || 120}</span>
+                        <span><i class="fas fa-comment"></i> 12</span>
+                    </div>
+                </a>`).join('');
+        }
+
+        // --- UI ADMIN ---
+        let currentAdminTab = 'menus';
+        
+        window.switchAdminTab = (tab) => {
+            currentAdminTab = tab;
+            renderAdminContent();
+            document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('bg-brand-dark', 'text-white'));
+            document.getElementById(`btn-tab-${tab}`).classList.add('bg-brand-dark', 'text-white');
+        };
+
+        window.renderAdminContent = () => {
+            const container = document.getElementById('admin-content-area');
+            if(currentAdminTab === 'menus') {
+                let html = '';
+                ['menu1', 'menu2', 'menu3'].forEach(key => {
+                    const m = appData.menus[key];
+                    html += `<div class="bg-white p-4 rounded shadow mb-4 border-l-4 border-brand-red">
+                        <h4 class="font-bold mb-2 uppercase text-gray-500">${key}</h4>
+                        <div class="grid grid-cols-2 gap-4 mb-2">
+                            <input type="text" id="${key}-title" value="${m.title}" class="border p-2 rounded" placeholder="Título">
+                            <input type="text" id="${key}-badge" value="${m.badge}" class="border p-2 rounded" placeholder="Etiqueta">
+                        </div>
+                        <div class="mb-2">
+                            <label class="block text-xs font-bold mb-1">Imagen Actual:</label>
+                            <img src="${m.image}" class="h-20 w-auto rounded mb-2">
+                            <input type="file" id="${key}-file" class="text-sm">
+                        </div>
+                        <div class="space-y-2">${m.sections.map((s,i) => `
+                            <input type="text" id="${key}-s${i}-title" value="${s.title}" class="w-full border p-1 text-sm font-bold bg-gray-50">
+                            <textarea id="${key}-s${i}-items" class="w-full border p-1 text-sm h-16">${s.items.join('\n')}</textarea>
+                        `).join('')}</div>
+                    </div>`;
+                });
+                container.innerHTML = html;
+            } else if (currentAdminTab === 'testimonials') {
+                let html = '<button onclick="addTestimonial()" class="bg-blue-500 text-white px-4 py-2 rounded mb-4 text-sm">+ Agregar Testimonio</button>';
+                appData.testimonials.forEach((t, i) => {
+                    html += `<div class="bg-white p-4 rounded shadow mb-2 flex gap-4 items-start">
+                        <div class="flex-grow grid gap-2">
+                            <input type="text" id="test-name-${i}" value="${t.name}" class="border p-1 rounded w-full" placeholder="Nombre">
+                            <input type="text" id="test-detail-${i}" value="${t.detail}" class="border p-1 rounded w-full" placeholder="Curso/Colegio">
+                            <textarea id="test-text-${i}" class="border p-1 rounded w-full h-16" placeholder="Comentario">${t.text}</textarea>
+                        </div>
+                        <button onclick="deleteItem('testimonials', ${i})" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
+                    </div>`;
+                });
+                container.innerHTML = html;
+            } else if (currentAdminTab === 'faqs') {
+                let html = '<button onclick="addFaq()" class="bg-blue-500 text-white px-4 py-2 rounded mb-4 text-sm">+ Agregar Pregunta</button>';
+                appData.faqs.forEach((f, i) => {
+                    html += `<div class="bg-white p-4 rounded shadow mb-2 flex gap-4 items-start">
+                        <div class="flex-grow grid gap-2">
+                            <input type="text" id="faq-q-${i}" value="${f.q}" class="border p-1 rounded w-full font-bold" placeholder="Pregunta">
+                            <textarea id="faq-a-${i}" class="border p-1 rounded w-full h-16" placeholder="Respuesta">${f.a}</textarea>
+                        </div>
+                        <button onclick="deleteItem('faqs', ${i})" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
+                    </div>`;
+                });
+                container.innerHTML = html;
+            } else if (currentAdminTab === 'gallery') {
+                let html = `<div class="mb-6 p-4 bg-blue-50 rounded border border-blue-200">
+                    <label class="block font-bold text-sm mb-2">Subir Nueva Foto:</label>
+                    <input type="file" id="new-gallery-file" class="mb-2">
+                    <button onclick="uploadToGallery()" class="bg-blue-600 text-white px-4 py-1 rounded text-sm">Subir Foto</button>
+                </div><div class="grid grid-cols-3 gap-4">`;
+                appData.gallery.forEach((img, i) => {
+                    html += `<div class="relative group">
+                        <img src="${img.url}" class="w-full aspect-square object-cover rounded shadow">
+                        <button onclick="deleteItem('gallery', ${i})" class="absolute top-1 right-1 bg-red-600 text-white w-6 h-6 rounded-full flex items-center justify-center shadow hover:bg-red-700"><i class="fas fa-times text-xs"></i></button>
+                    </div>`;
+                });
+                html += '</div>';
+                container.innerHTML = html;
+            }
+        };
+
+        // --- ACCIONES ADMIN ---
+        window.saveAllChanges = async () => {
+            const btn = document.getElementById('save-btn');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...'; btn.disabled = true;
+            try {
+                // 1. Guardar Menús
+                if(currentAdminTab === 'menus') {
+                    for(const key of ['menu1','menu2','menu3']) {
+                        const fileInput = document.getElementById(`${key}-file`);
+                        if(fileInput.files[0]) {
+                            const url = await uploadFile(fileInput.files[0]);
+                            appData.menus[key].image = url;
+                        }
+                        appData.menus[key].title = document.getElementById(`${key}-title`).value;
+                        appData.menus[key].badge = document.getElementById(`${key}-badge`).value;
+                        appData.menus[key].sections.forEach((s, i) => {
+                            s.title = document.getElementById(`${key}-s${i}-title`).value;
+                            s.items = document.getElementById(`${key}-s${i}-items`).value.split('\n').filter(x=>x.trim());
+                        });
+                    }
+                }
+                // 2. Guardar Testimonios
+                else if (currentAdminTab === 'testimonials') {
+                    appData.testimonials = appData.testimonials.map((_, i) => ({
+                        name: document.getElementById(`test-name-${i}`).value,
+                        detail: document.getElementById(`test-detail-${i}`).value,
+                        text: document.getElementById(`test-text-${i}`).value,
+                        color: "bg-brand-red"
+                    }));
+                }
+                // 3. Guardar FAQ
+                else if (currentAdminTab === 'faqs') {
+                    appData.faqs = appData.faqs.map((_, i) => ({
+                        q: document.getElementById(`faq-q-${i}`).value,
+                        a: document.getElementById(`faq-a-${i}`).value
+                    }));
+                }
+                
+                await setDoc(getDataRef(), appData);
+                alert("Cambios guardados exitosamente.");
+            } catch(e) { alert("Error al guardar: " + e.message); }
+            btn.innerHTML = '<i class="fas fa-save"></i> Guardar Cambios'; btn.disabled = false;
+        };
+
+        window.addTestimonial = () => { appData.testimonials.push({name:"", detail:"", text:"", color:"bg-brand-red"}); renderAdminContent(); };
+        window.addFaq = () => { appData.faqs.push({q:"", a:""}); renderAdminContent(); };
+        window.deleteItem = (arr, idx) => { if(confirm("¿Eliminar este elemento?")) { appData[arr].splice(idx, 1); renderAdminContent(); window.saveAllChanges(); } };
+        
+        window.uploadToGallery = async () => {
+            const input = document.getElementById('new-gallery-file');
+            if(!input.files[0]) return alert("Selecciona una foto primero");
+            const btn = event.target; btn.innerText = "Subiendo..."; btn.disabled = true;
+            try {
+                const url = await uploadFile(input.files[0]);
+                appData.gallery.unshift({ url: url, likes: 0 });
+                await setDoc(getDataRef(), appData);
+                renderAdminContent();
+                alert("Foto subida!");
+            } catch(e) { alert("Error: " + e.message); }
+        };
+
+        window.renderAdminStats = (stats) => {
+            if(!document.getElementById('stat-views')) return;
+            document.getElementById('stat-views').innerText = stats.views || 0;
+            document.getElementById('stat-clicks').innerText = stats.menu_clicks || 0;
+            document.getElementById('stat-forms').innerText = stats.form_reached || 0;
+            document.getElementById('stat-conversions').innerText = stats.conversions || 0;
+        }
+
+        // Helpers UI
+        window.updateFormSelect = () => {
+            const sel = document.getElementById('form-menu');
+            if(sel) {
+                const val = sel.value;
+                sel.innerHTML = Object.values(appData.menus).map(m=>`<option value="${m.title}">${m.title}</option>`).join('') + '<option value="Personalizado">Otro / Personalizado ✨</option>';
+                if(val) sel.value = val;
+            }
+        }
+        window.selectMenu = (name) => { trackEvent('menu_clicks'); document.getElementById('form-menu').value = name; document.getElementById('contacto').scrollIntoView({behavior:'smooth'}); };
+        window.toggleFaq = (btn) => btn.parentElement.classList.toggle('accordion-active');
+        
+        // WhatsApp
+        window.sendToWhatsapp = (e) => {
+            e.preventDefault(); trackEvent('conversions');
+            const d = { n: document.getElementById('form-name').value, c: document.getElementById('form-course').value, m: document.getElementById('form-menu').value, q: document.getElementById('form-quantity').value };
+            window.open(`https://wa.me/56967083372?text=Hola! 👋 Me gustaría cotizar un asado.%0A%0A👤 *Nombre:* ${d.n}%0A🏢 *Curso/Empresa:* ${d.c}%0A🍖 *Menú:* ${d.m}%0A👥 *Cantidad:* ${d.q} personas%0A%0AQuedo atento a su respuesta!`, '_blank');
+        };
+
+        // Router
+        window.checkHash = () => {
+            const h = window.location.hash;
+            const isAdmin = h === '#admin' && localStorage.getItem('isAdmin') === 'true';
+            document.getElementById('public-view').style.display = isAdmin ? 'none' : 'block';
+            document.getElementById('login-view').style.display = h === '#admin' && !isAdmin ? 'flex' : 'none';
+            document.getElementById('admin-view').classList.toggle('hidden', !isAdmin);
+            if(isAdmin) { renderAdminContent(); }
+        };
+        window.handleLogin = (e) => { e.preventDefault(); if(document.getElementById('username').value==='cristian' && document.getElementById('password').value==='felipecata') { localStorage.setItem('isAdmin','true'); window.location.reload(); } else alert("Error"); };
+        window.logout = () => { localStorage.removeItem('isAdmin'); window.location.hash=''; };
+
+        initApp();
+        window.addEventListener('hashchange', checkHash);
+        window.addEventListener('load', checkHash);
+        const obs = new IntersectionObserver(e=>{e.forEach(x=>{if(x.isIntersecting && !hasLoggedFormView){trackEvent('form_reached');hasLoggedFormView=true}})},{threshold:0.5});
+        window.onload = () => { if(document.getElementById('contacto')) obs.observe(document.getElementById('contacto')); }
+
+    </script>
 </head>
 <body class="font-sans text-gray-800 scroll-smooth bg-gray-50">
 
     <!-- VISTA PÚBLICA -->
     <div id="public-view">
-        <!-- Navbar -->
         <nav class="bg-white shadow-md fixed w-full z-50">
             <div class="container mx-auto px-6 py-3 flex justify-between items-center">
                 <a href="#" class="text-2xl font-bold text-brand-red flex items-center gap-2">
                     🔥 Parrilla y Cocina
                 </a>
                 
+                <!-- Mobile Menu Button -->
                 <div class="md:hidden">
-                    <button onclick="toggleMenu()" class="text-gray-600 hover:text-brand-red focus:outline-none">
+                    <button onclick="document.getElementById('mobile-menu').classList.toggle('hidden')" class="text-gray-600 hover:text-brand-red focus:outline-none">
                         <i class="fas fa-bars text-2xl"></i>
                     </button>
                 </div>
 
+                <!-- Desktop Menu -->
                 <div class="hidden md:flex items-center space-x-8">
                     <a href="#inicio" class="text-gray-700 hover:text-brand-red font-medium transition">Inicio</a>
                     <a href="#servicios" class="text-gray-700 hover:text-brand-red font-medium transition">Servicios</a>
                     <a href="#menu" class="text-gray-700 hover:text-brand-red font-medium transition">Menú</a>
-                    <a href="#galeria" class="text-gray-700 hover:text-brand-red font-medium transition">Instagram</a>
+                    <a href="#testimonios" class="text-gray-700 hover:text-brand-red font-medium transition">Testimonios</a>
                     <a href="#contacto" class="bg-brand-red text-white px-5 py-2 rounded-full font-bold hover:bg-red-700 transition shadow-lg transform hover:scale-105 flex items-center gap-2">
                         <i class="fas fa-hand-holding-dollar"></i> Cotizar Ahora
                     </a>
                 </div>
             </div>
             
+            <!-- Mobile Menu Dropdown -->
             <div id="mobile-menu" class="hidden md:hidden bg-white border-t p-4">
-                <a href="#inicio" class="block py-2 text-gray-700 hover:text-brand-red" onclick="toggleMenu()">Inicio</a>
-                <a href="#servicios" class="block py-2 text-gray-700 hover:text-brand-red" onclick="toggleMenu()">Servicios</a>
-                <a href="#menu" class="block py-2 text-gray-700 hover:text-brand-red" onclick="toggleMenu()">Menú</a>
-                <a href="#galeria" class="block py-2 text-gray-700 hover:text-brand-red" onclick="toggleMenu()">Galería</a>
-                <a href="#contacto" class="block py-2 text-brand-red font-bold" onclick="toggleMenu()">Cotizar</a>
+                <a href="#inicio" class="block py-2 text-gray-700 hover:text-brand-red">Inicio</a>
+                <a href="#servicios" class="block py-2 text-gray-700 hover:text-brand-red">Servicios</a>
+                <a href="#menu" class="block py-2 text-gray-700 hover:text-brand-red">Menú</a>
+                <a href="#testimonios" class="block py-2 text-gray-700 hover:text-brand-red">Testimonios</a>
+                <a href="#contacto" class="block py-2 text-brand-red font-bold">Cotizar</a>
             </div>
         </nav>
 
@@ -427,27 +520,33 @@
                             <span class="text-3xl">👨‍🍳</span>
                         </div>
                         <h3 class="text-xl font-bold mb-3 text-brand-dark">Expertos Parrilleros</h3>
-                        <p class="text-gray-600">Nuestro equipo sabe exactamente el punto de la carne. ¡Nadie se queda con hambre y todo sale a tiempo!</p>
+                        <p class="text-gray-600">
+                            Nuestro equipo sabe exactamente el punto de la carne. ¡Nadie se queda con hambre y todo sale a tiempo!
+                        </p>
                     </div>
                     <div class="bg-gray-50 p-8 rounded-2xl shadow-lg hover:shadow-xl transition text-center border-b-4 border-brand-orange">
                         <div class="bg-orange-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
                             <span class="text-3xl">🥗</span>
                         </div>
                         <h3 class="text-xl font-bold mb-3 text-brand-dark">Opciones para Todos</h3>
-                        <p class="text-gray-600">¿Vegetarianos? ¿Veganos? ¡Sin problema! Tenemos menús inclusivos para que todo el curso disfrute.</p>
+                        <p class="text-gray-600">
+                            ¿Vegetarianos? ¿Veganos? ¡Sin problema! Tenemos menús inclusivos para que todo el curso disfrute.
+                        </p>
                     </div>
                     <div class="bg-gray-50 p-8 rounded-2xl shadow-lg hover:shadow-xl transition text-center border-b-4 border-brand-yellow">
                         <div class="bg-yellow-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
                             <span class="text-3xl">⚡</span>
                         </div>
                         <h3 class="text-xl font-bold mb-3 text-brand-dark">Servicio Full</h3>
-                        <p class="text-gray-600">Llevamos todo: parrillas, carbón, platos, cubiertos y salsas. Ustedes solo traigan las ganas de pasarlo bien.</p>
+                        <p class="text-gray-600">
+                            Llevamos todo: parrillas, carbón, platos, cubiertos y salsas. Ustedes solo traigan las ganas de pasarlo bien.
+                        </p>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Menú Section (DYNAMIC) -->
+        <!-- Menú Section -->
         <section id="menu" class="py-20 bg-brand-dark text-white relative overflow-hidden">
             <div class="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-brand-red rounded-full opacity-20 blur-3xl"></div>
             <div class="absolute bottom-0 left-0 -ml-20 -mb-20 w-64 h-64 bg-brand-yellow rounded-full opacity-20 blur-3xl"></div>
@@ -474,6 +573,14 @@
             </div>
         </section>
 
+        <!-- TESTIMONIOS -->
+        <section id="testimonios" class="py-20 bg-gray-100">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12"><h2 class="text-3xl font-bold text-gray-800">Lo que dicen los Apoderados 💬</h2></div>
+                <div id="testimonials-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
+            </div>
+        </section>
+
         <!-- Instagram Simulated Section -->
         <section id="galeria" class="py-20 bg-gray-50">
             <div class="container mx-auto px-6">
@@ -483,37 +590,7 @@
                     <a href="https://www.instagram.com/parrilla_y_cocina_/" target="_blank" class="text-brand-red font-semibold hover:underline text-lg">@parrilla_y_cocina_</a>
                     <p class="text-gray-500 mt-2">¡Mira cómo lo han pasado otros cursos! 📸</p>
                 </div>
-                <!-- Fake Grid -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <a href="https://www.instagram.com/parrilla_y_cocina_/" target="_blank" class="group relative block overflow-hidden rounded-lg aspect-square">
-                        <img src="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Parrilla llena" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
-                        <div class="absolute inset-0 insta-overlay opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center text-white space-x-4">
-                            <span><i class="fas fa-heart"></i> 124</span>
-                            <span><i class="fas fa-comment"></i> 12</span>
-                        </div>
-                    </a>
-                    <a href="https://www.instagram.com/p/DE_RDIhN5MN/?img_index=1" target="_blank" class="group relative block overflow-hidden rounded-lg aspect-square">
-                        <img src="https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Carne a la parrilla lista" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
-                        <div class="absolute inset-0 insta-overlay opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center text-white space-x-4">
-                            <span><i class="fas fa-heart"></i> 156</span>
-                            <span><i class="fas fa-comment"></i> 8</span>
-                        </div>
-                    </a>
-                    <a href="https://www.instagram.com/parrilla_y_cocina_/" target="_blank" class="group relative block overflow-hidden rounded-lg aspect-square">
-                        <img src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Amigos comiendo" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
-                        <div class="absolute inset-0 insta-overlay opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center text-white space-x-4">
-                            <span><i class="fas fa-heart"></i> 256</span>
-                            <span><i class="fas fa-comment"></i> 34</span>
-                        </div>
-                    </a>
-                    <a href="https://www.instagram.com/parrilla_y_cocina_/" target="_blank" class="group relative block overflow-hidden rounded-lg aspect-square">
-                        <img src="https://images.unsplash.com/photo-1594041680534-e8c8cdebd659?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Fuego asado" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
-                        <div class="absolute inset-0 insta-overlay opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center text-white space-x-4">
-                            <span><i class="fas fa-heart"></i> 140</span>
-                            <span><i class="fas fa-comment"></i> 18</span>
-                        </div>
-                    </a>
-                </div>
+                <div id="gallery-container" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
                 <div class="text-center mt-8">
                     <a href="https://www.instagram.com/parrilla_y_cocina_/" target="_blank" class="inline-block border-2 border-pink-500 text-pink-600 font-bold px-8 py-3 rounded-full hover:bg-pink-50 transition">
                         Ver más en Instagram <i class="fas fa-arrow-right ml-2"></i>
@@ -522,10 +599,19 @@
             </div>
         </section>
 
+        <!-- FAQ Section -->
+        <section class="py-20 bg-white">
+            <div class="container mx-auto px-6 max-w-3xl">
+                <h2 class="text-3xl font-bold text-center text-gray-800 mb-12">Preguntas Frecuentes 🤔</h2>
+                <div id="faq-container" class="space-y-4"></div>
+            </div>
+        </section>
+
         <!-- Contacto Section -->
         <section id="contacto" class="py-20 bg-white">
             <div class="container mx-auto px-6 max-w-4xl">
                 <div class="bg-brand-dark text-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
+                    <!-- Info Side -->
                     <div class="p-10 md:w-1/2 bg-brand-red flex flex-col justify-center">
                         <h2 class="text-3xl font-bold mb-4">¿Listos para el mejor paseo? 🚌</h2>
                         <p class="mb-8 text-red-100">Déjanos tus datos y te enviaremos una cotización personalizada para tu curso.</p>
@@ -544,6 +630,8 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Form Side -->
                     <div class="p-10 md:w-1/2 bg-white text-gray-800">
                         <form onsubmit="sendToWhatsapp(event)">
                             <div class="mb-4">
@@ -584,8 +672,8 @@
                     <a href="https://wa.me/56967083372" target="_blank" class="hover:text-brand-orange transition text-2xl" title="WhatsApp"><i class="fab fa-whatsapp"></i></a>
                 </div>
                 <div class="flex justify-center items-center gap-4 text-gray-500 text-sm">
-                    <p>© 2024 Parrilla y Cocina. Todos los derechos reservados.</p>
-                    <a href="#admin" onclick="checkHash()" class="hover:text-white" title="Acceso Admin"><i class="fas fa-lock"></i></a>
+                    <p>© 2024 Parrilla y Cocina. Todos los derechos reservados. | Diseñado para el disfrute.</p>
+                    <a href="#admin" onclick="checkHash()" class="hover:text-white" title="Acceso Admin"><i class="fas fa-lock"></i> Admin</a>
                 </div>
             </div>
         </footer>
@@ -596,165 +684,55 @@
         </a>
     </div>
 
-    <!-- VISTA LOGIN -->
+    <!-- LOGIN -->
     <div id="login-view" class="hidden fixed inset-0 z-50 bg-brand-dark flex items-center justify-center p-4">
         <div class="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full text-center">
-            <div class="mb-6">
-                <i class="fas fa-user-shield text-5xl text-brand-red"></i>
-            </div>
-            <h2 class="text-2xl font-bold mb-6 text-gray-800">Acceso Administrativo</h2>
+            <h2 class="text-2xl font-bold mb-6">Acceso Admin</h2>
             <form onsubmit="handleLogin(event)">
-                <input type="text" id="username" placeholder="Usuario" class="w-full mb-4 p-3 border rounded focus:border-brand-red outline-none">
-                <input type="password" id="password" placeholder="Contraseña" class="w-full mb-6 p-3 border rounded focus:border-brand-red outline-none">
-                <button type="submit" class="w-full bg-brand-red text-white font-bold py-3 rounded hover:bg-red-700 transition">Entrar al Panel</button>
+                <input type="text" id="username" placeholder="Usuario" class="w-full mb-4 p-3 border rounded">
+                <input type="password" id="password" placeholder="Contraseña" class="w-full mb-6 p-3 border rounded">
+                <button type="submit" class="w-full bg-brand-red text-white font-bold py-3 rounded">Entrar</button>
             </form>
-            <button onclick="window.location.hash=''" class="mt-4 text-gray-500 hover:text-gray-800 text-sm">Volver al sitio</button>
+            <button onclick="window.location.hash=''" class="mt-4 text-sm text-gray-500">Volver</button>
         </div>
     </div>
 
-    <!-- VISTA ADMIN PANEL -->
+    <!-- ADMIN PANEL -->
     <div id="admin-view" class="hidden min-h-screen bg-gray-100 pb-20">
-        <!-- Admin Navbar -->
-        <div class="bg-brand-dark text-white p-4 shadow-md sticky top-0 z-40">
-            <div class="container mx-auto flex justify-between items-center">
-                <h1 class="font-bold text-xl"><i class="fas fa-tools mr-2"></i> Editor de Menús</h1>
-                <div class="flex gap-4">
-                    <a href="#" class="text-gray-300 hover:text-white flex items-center gap-2 bg-gray-700 px-3 py-1 rounded text-sm"><i class="fas fa-eye"></i> Ver Página</a>
-                    <button onclick="logout()" class="text-red-300 hover:text-white text-sm"><i class="fas fa-sign-out-alt"></i> Salir</button>
-                </div>
+        <div class="bg-brand-dark text-white p-4 shadow sticky top-0 z-40 flex justify-between items-center">
+            <h1 class="font-bold text-xl"><i class="fas fa-tools"></i> CMS Parrilla</h1>
+            <button onclick="logout()" class="text-red-300 text-sm">Salir</button>
+        </div>
+        
+        <div class="bg-white border-b shadow-sm mb-6 p-4">
+            <h2 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Estadísticas</h2>
+            <div class="grid grid-cols-4 gap-2 text-center text-sm">
+                <div class="bg-blue-50 p-2 rounded border border-blue-100"><div class="font-bold text-blue-900" id="stat-views">0</div><div class="text-xs text-blue-600">Visitas</div></div>
+                <div class="bg-yellow-50 p-2 rounded border border-yellow-100"><div class="font-bold text-yellow-900" id="stat-clicks">0</div><div class="text-xs text-yellow-600">Clics Menú</div></div>
+                <div class="bg-purple-50 p-2 rounded border border-purple-100"><div class="font-bold text-purple-900" id="stat-forms">0</div><div class="text-xs text-purple-600">Formulario</div></div>
+                <div class="bg-green-50 p-2 rounded border border-green-100"><div class="font-bold text-green-900" id="stat-conversions">0</div><div class="text-xs text-green-600">WhatsApp</div></div>
             </div>
         </div>
 
-        <!-- STATS DASHBOARD -->
-        <div class="bg-white border-b shadow-sm mb-6">
-            <div class="container mx-auto px-4 py-6">
-                <h2 class="text-lg font-bold text-gray-600 mb-4 uppercase tracking-wider">Métricas en Tiempo Real 📊</h2>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <!-- Visitas -->
-                    <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 shadow-sm text-center">
-                        <div class="text-blue-500 text-2xl mb-1"><i class="fas fa-eye"></i></div>
-                        <div class="text-3xl font-bold text-blue-900" id="stat-views">0</div>
-                        <div class="text-xs text-blue-600 font-bold uppercase mt-1">Visitas Totales</div>
-                    </div>
-                    <!-- Menu Clicks -->
-                    <div class="bg-yellow-50 p-4 rounded-xl border border-yellow-100 shadow-sm text-center">
-                        <div class="text-yellow-500 text-2xl mb-1"><i class="fas fa-mouse-pointer"></i></div>
-                        <div class="text-3xl font-bold text-yellow-900" id="stat-clicks">0</div>
-                        <div class="text-xs text-yellow-600 font-bold uppercase mt-1">Interés en Menú</div>
-                    </div>
-                    <!-- Form Reached -->
-                    <div class="bg-purple-50 p-4 rounded-xl border border-purple-100 shadow-sm text-center">
-                        <div class="text-purple-500 text-2xl mb-1"><i class="fas fa-file-alt"></i></div>
-                        <div class="text-3xl font-bold text-purple-900" id="stat-forms">0</div>
-                        <div class="text-xs text-purple-600 font-bold uppercase mt-1">Vieron Formulario</div>
-                    </div>
-                    <!-- Conversions -->
-                    <div class="bg-green-50 p-4 rounded-xl border border-green-100 shadow-sm text-center">
-                        <div class="text-green-500 text-2xl mb-1"><i class="fab fa-whatsapp"></i></div>
-                        <div class="text-3xl font-bold text-green-900" id="stat-conversions">0</div>
-                        <div class="text-xs text-green-600 font-bold uppercase mt-1">Cotizaciones</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="container mx-auto px-4 py-8 max-w-4xl">
-            <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6" role="alert">
-                <p class="font-bold">Modo Edición</p>
-                <p>Cualquier cambio que guardes aquí se reflejará inmediatamente en la página principal para todos los usuarios.</p>
+        <div class="container mx-auto px-4 max-w-4xl">
+            <!-- TABS -->
+            <div class="flex mb-4 bg-white rounded shadow overflow-hidden">
+                <button onclick="switchAdminTab('menus')" id="btn-tab-menus" class="admin-tab-btn flex-1 py-3 text-sm font-bold bg-brand-dark text-white border-r">Menús</button>
+                <button onclick="switchAdminTab('testimonials')" id="btn-tab-testimonials" class="admin-tab-btn flex-1 py-3 text-sm font-bold hover:bg-gray-100 border-r">Testimonios</button>
+                <button onclick="switchAdminTab('faqs')" id="btn-tab-faqs" class="admin-tab-btn flex-1 py-3 text-sm font-bold hover:bg-gray-100 border-r">FAQ</button>
+                <button onclick="switchAdminTab('gallery')" id="btn-tab-gallery" class="admin-tab-btn flex-1 py-3 text-sm font-bold hover:bg-gray-100">Galería</button>
             </div>
 
-            <div id="admin-forms-container">
-                <!-- Se rellena con JS -->
-                <div class="text-center py-10"><i class="fas fa-spinner fa-spin text-4xl"></i></div>
+            <div id="admin-content-area" class="mb-20">
+                <!-- JS Renders Content Here -->
             </div>
 
-            <!-- Botón flotante para guardar -->
-            <div class="fixed bottom-6 right-6 flex gap-4">
-                 <button onclick="window.scrollTo(0,0)" class="bg-gray-500 text-white p-4 rounded-full shadow-lg hover:bg-gray-600">
-                    <i class="fas fa-arrow-up"></i>
-                </button>
-                <button id="save-btn" onclick="saveMenuChanges()" class="bg-green-600 text-white px-8 py-4 rounded-full shadow-xl hover:bg-green-700 font-bold flex items-center gap-2 transform hover:scale-105 transition">
+            <div class="fixed bottom-6 right-6">
+                <button id="save-btn" onclick="saveAllChanges()" class="bg-green-600 text-white px-6 py-4 rounded-full shadow-xl font-bold flex items-center gap-2 transform hover:scale-105 transition">
                     <i class="fas fa-save"></i> Guardar Cambios
                 </button>
             </div>
         </div>
     </div>
-
-    <script>
-        // Lógica de Vistas (Router simple)
-        function checkHash() {
-            const hash = window.location.hash;
-            const publicView = document.getElementById('public-view');
-            const loginView = document.getElementById('login-view');
-            const adminView = document.getElementById('admin-view');
-
-            publicView.classList.add('hidden');
-            loginView.classList.add('hidden');
-            adminView.classList.add('hidden');
-
-            if (hash === '#admin') {
-                if (localStorage.getItem('isAdmin') === 'true') {
-                    adminView.classList.remove('hidden');
-                    window.renderAdminForms(); // Cargar formularios al entrar
-                    // Forzamos actualización de listeners si ya estamos conectados
-                    if (window.setupStatsListener) window.setupStatsListener();
-                } else {
-                    loginView.classList.remove('hidden');
-                }
-            } else {
-                publicView.classList.remove('hidden');
-            }
-        }
-
-        // Auth Lógica
-        function handleLogin(e) {
-            e.preventDefault();
-            const u = document.getElementById('username').value;
-            const p = document.getElementById('password').value;
-
-            if (u === 'cristian' && p === 'felipecata') {
-                localStorage.setItem('isAdmin', 'true');
-                window.location.reload(); // Recargar para aplicar vista
-            } else {
-                alert('Credenciales incorrectas');
-            }
-        }
-
-        function logout() {
-            localStorage.removeItem('isAdmin');
-            window.location.hash = '';
-        }
-
-        // Navbar Toggle
-        function toggleMenu() {
-            document.getElementById('mobile-menu').classList.toggle('hidden');
-        }
-
-        function selectMenu(menuName) {
-            window.trackEvent('menu_clicks'); // Registrar click
-            const select = document.getElementById('form-menu');
-            if(select) {
-                select.value = menuName;
-                document.getElementById('contacto').scrollIntoView({ behavior: 'smooth' });
-            }
-        }
-
-        // WhatsApp
-        function sendToWhatsapp(event) {
-            event.preventDefault();
-            window.trackEvent('conversions'); // Registrar conversión
-            const name = document.getElementById('form-name').value;
-            const course = document.getElementById('form-course').value;
-            const menu = document.getElementById('form-menu').value;
-            const quantity = document.getElementById('form-quantity').value;
-            const message = `Hola! 👋 Me gustaría cotizar un asado.%0A%0A👤 *Nombre:* ${name}%0A🏢 *Curso/Empresa:* ${course}%0A🍖 *Menú:* ${menu}%0A👥 *Cantidad:* ${quantity} personas%0A%0AQuedo atento a su respuesta!`;
-            window.open(`https://wa.me/56967083372?text=${message}`, '_blank');
-        }
-
-        // Listener de cambios de URL
-        window.addEventListener('hashchange', checkHash);
-        window.addEventListener('load', checkHash);
-    </script>
 </body>
 </html>
