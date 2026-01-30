@@ -85,7 +85,7 @@
     <header id="inicio" class="hero-bg h-screen flex items-center justify-center text-center px-4 pt-16">
         <div class="max-w-4xl mx-auto text-white">
             <div class="inline-block bg-brand-orange text-white px-4 py-1 rounded-full text-sm font-bold mb-4 shadow-md animate-bounce">
-                🎓 ¡Temporada de Paseos 2024-2025!
+                🎓 ¡Temporada de Paseos 2026-2027!
             </div>
             <h1 class="text-4xl md:text-6xl font-bold mb-6 leading-tight">
                 El Mejor Asado para tu <span class="text-brand-yellow">Paseo de Curso</span> 🍖🔥
@@ -157,71 +157,128 @@
 
         <div class="container mx-auto px-6 relative z-10">
             <div class="text-center mb-16">
-                <span class="text-brand-yellow font-bold tracking-wider uppercase text-sm">Nuestros Packs</span>
-                <h2 class="text-3xl md:text-5xl font-bold mt-2">¡Para Chuparse los Dedos! 😋</h2>
+                <span class="text-brand-yellow font-bold tracking-wider uppercase text-sm">Nuestros Packs Escolares</span>
+                <h2 class="text-3xl md:text-5xl font-bold mt-2">¡Desayuno, Almuerzo y Once! 😋</h2>
+                <p class="mt-4 text-gray-300">Incluye servicio completo por todo el día</p>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 <!-- Pack 1 -->
-                <div class="bg-white text-gray-800 rounded-xl overflow-hidden shadow-2xl transform hover:-translate-y-2 transition duration-300">
-                    <div class="h-48 overflow-hidden">
-                        <img src="https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Choripan" class="w-full h-full object-cover">
+                <div class="bg-white text-gray-800 rounded-xl overflow-hidden shadow-2xl transform hover:-translate-y-2 transition duration-300 flex flex-col h-full">
+                    <div class="h-48 overflow-hidden relative">
+                        <img src="https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Pollo Asado" class="w-full h-full object-cover">
+                        <div class="absolute top-0 left-0 bg-brand-red text-white text-xs font-bold px-3 py-1 rounded-br-lg">Económico</div>
                     </div>
-                    <div class="p-6">
+                    <div class="p-6 flex-grow flex flex-col">
                         <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-2xl font-bold text-brand-red">Pack Básico</h3>
-                            <span class="bg-gray-200 text-gray-700 text-xs font-bold px-2 py-1 rounded">Popular</span>
+                            <h3 class="text-2xl font-bold text-brand-red">Menú 1</h3>
                         </div>
-                        <ul class="space-y-3 mb-6">
-                            <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> Choripán (Longaniza Artesanal)</li>
-                            <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> Lomo Vetado / Asiento</li>
-                            <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> Papas Cocidas o Ensalada Chilena</li>
-                            <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> Pebre y Pan Amasado</li>
-                        </ul>
-                        <button onclick="window.location.href='#contacto'" class="w-full block bg-gray-900 text-white text-center py-3 rounded-lg font-bold hover:bg-brand-red transition">Cotizar Este Pack</button>
+                        <div class="flex-grow space-y-4">
+                            <div>
+                                <h4 class="font-bold text-sm text-gray-500 uppercase mb-1">🌄 Desayuno</h4>
+                                <ul class="text-sm space-y-1 ml-2">
+                                    <li>• Marraqueta jamón/queso</li>
+                                    <li>• Leche, jugo, té y café</li>
+                                </ul>
+                            </div>
+                            <div class="border-t pt-2">
+                                <h4 class="font-bold text-sm text-gray-500 uppercase mb-1">🔥 Almuerzo Parrillero</h4>
+                                <ul class="text-sm space-y-1 ml-2">
+                                    <li class="font-semibold">• Trutro entero de pollo 🍗</li>
+                                    <li>• Choripán con pebre y salsas</li>
+                                    <li>• Paleta de Helado 🍦</li>
+                                </ul>
+                            </div>
+                            <div class="border-t pt-2">
+                                <h4 class="font-bold text-sm text-gray-500 uppercase mb-1">🌇 Once</h4>
+                                <ul class="text-sm space-y-1 ml-2">
+                                    <li>• Completo Italiano 🌭</li>
+                                    <li>• Bebida, té y café</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <button onclick="selectMenu('Menú 1')" class="mt-6 w-full block bg-gray-900 text-white text-center py-3 rounded-lg font-bold hover:bg-brand-red transition">Cotizar Este Menú</button>
                     </div>
                 </div>
 
                 <!-- Pack 2 -->
-                <div class="bg-white text-gray-800 rounded-xl overflow-hidden shadow-2xl transform hover:-translate-y-2 transition duration-300 border-4 border-brand-yellow relative">
-                    <div class="absolute top-0 right-0 bg-brand-yellow text-brand-dark text-xs font-bold px-3 py-1 rounded-bl-lg z-10">MEJOR OPCIÓN</div>
+                <div class="bg-white text-gray-800 rounded-xl overflow-hidden shadow-2xl transform hover:-translate-y-2 transition duration-300 border-4 border-brand-yellow relative flex flex-col h-full">
+                    <div class="absolute top-0 right-0 bg-brand-yellow text-brand-dark text-xs font-bold px-3 py-1 rounded-bl-lg z-10">RECOMENDADO</div>
                     <div class="h-48 overflow-hidden">
-                        <img src="https://images.unsplash.com/photo-1558030006-450675393462?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Asado Full" class="w-full h-full object-cover">
+                        <img src="https://images.unsplash.com/photo-1600891964092-4316c288032e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Lomo Parrilla" class="w-full h-full object-cover">
                     </div>
-                    <div class="p-6">
+                    <div class="p-6 flex-grow flex flex-col">
                         <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-2xl font-bold text-brand-red">Pack Full Equipo</h3>
+                            <h3 class="text-2xl font-bold text-brand-red">Menú 2</h3>
                         </div>
-                        <ul class="space-y-3 mb-6">
-                            <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> Todo lo del Pack Básico</li>
-                            <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> Costillar de Cerdo BBQ</li>
-                            <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> Pollo al Limón</li>
-                            <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> Buffet de Ensaladas (3 tipos)</li>
-                            <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> Bebidas incluidas</li>
-                        </ul>
-                        <button onclick="window.location.href='#contacto'" class="w-full block bg-brand-yellow text-brand-dark text-center py-3 rounded-lg font-bold hover:bg-yellow-400 transition">¡Lo Quiero! 🔥</button>
+                        <div class="flex-grow space-y-4">
+                            <div>
+                                <h4 class="font-bold text-sm text-gray-500 uppercase mb-1">🌄 Desayuno</h4>
+                                <ul class="text-sm space-y-1 ml-2">
+                                    <li>• Marraqueta jamón/queso</li>
+                                    <li>• Leche, jugo, té y café</li>
+                                </ul>
+                            </div>
+                            <div class="border-t pt-2">
+                                <h4 class="font-bold text-sm text-gray-500 uppercase mb-1">🔥 Almuerzo Parrillero</h4>
+                                <ul class="text-sm space-y-1 ml-2">
+                                    <li class="font-semibold text-brand-red">• Lomo de Res (250g) 🥩</li>
+                                    <li>• Choripán con pebre y salsas</li>
+                                    <li>• Paleta de Helado 🍦</li>
+                                </ul>
+                            </div>
+                            <div class="border-t pt-2">
+                                <h4 class="font-bold text-sm text-gray-500 uppercase mb-1">🌇 Once</h4>
+                                <ul class="text-sm space-y-1 ml-2">
+                                    <li>• Completo Italiano 🌭</li>
+                                    <li>• Bebida, té y café</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <button onclick="selectMenu('Menú 2')" class="mt-6 w-full block bg-brand-yellow text-brand-dark text-center py-3 rounded-lg font-bold hover:bg-yellow-400 transition">¡Lo Quiero! 🔥</button>
                     </div>
                 </div>
 
                 <!-- Pack 3 -->
-                <div class="bg-white text-gray-800 rounded-xl overflow-hidden shadow-2xl transform hover:-translate-y-2 transition duration-300">
+                <div class="bg-white text-gray-800 rounded-xl overflow-hidden shadow-2xl transform hover:-translate-y-2 transition duration-300 flex flex-col h-full">
                     <div class="h-48 overflow-hidden">
-                        <img src="https://images.unsplash.com/photo-1544025162-d76694265947?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Parrilla Premium" class="w-full h-full object-cover">
+                        <img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Hamburguesa" class="w-full h-full object-cover">
                     </div>
-                    <div class="p-6">
+                    <div class="p-6 flex-grow flex flex-col">
                         <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-2xl font-bold text-brand-red">Pack Premium</h3>
+                            <h3 class="text-2xl font-bold text-brand-red">Menú 3</h3>
                         </div>
-                        <ul class="space-y-3 mb-6">
-                            <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> Cortes Finos (Entraña/Filete)</li>
-                            <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> Anticuchos Premium</li>
-                            <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> Tablas de Picoteo Previo</li>
-                            <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> Postre Casero</li>
-                            <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> Barra de Jugos Naturales</li>
-                        </ul>
-                        <button onclick="window.location.href='#contacto'" class="w-full block bg-gray-900 text-white text-center py-3 rounded-lg font-bold hover:bg-brand-red transition">Experiencia VIP</button>
+                        <div class="flex-grow space-y-4">
+                            <div>
+                                <h4 class="font-bold text-sm text-gray-500 uppercase mb-1">🌄 Desayuno</h4>
+                                <ul class="text-sm space-y-1 ml-2">
+                                    <li>• Marraqueta jamón/queso</li>
+                                    <li>• Leche, jugo, té y café</li>
+                                </ul>
+                            </div>
+                            <div class="border-t pt-2">
+                                <h4 class="font-bold text-sm text-gray-500 uppercase mb-1">🔥 Almuerzo Parrillero</h4>
+                                <ul class="text-sm space-y-1 ml-2">
+                                    <li class="font-semibold text-brand-red">• Lomo de Res (250g) 🥩</li>
+                                    <li>• Choripán con pebre y salsas</li>
+                                    <li>• Paleta de Helado 🍦</li>
+                                </ul>
+                            </div>
+                            <div class="border-t pt-2">
+                                <h4 class="font-bold text-sm text-gray-500 uppercase mb-1">🌇 Once</h4>
+                                <ul class="text-sm space-y-1 ml-2">
+                                    <li class="font-semibold text-brand-dark">• Hamburguesa Queso 🍔</li>
+                                    <li>• Bebida, té y café</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <button onclick="selectMenu('Menú 3')" class="mt-6 w-full block bg-gray-900 text-white text-center py-3 rounded-lg font-bold hover:bg-brand-red transition">Experiencia VIP</button>
                     </div>
                 </div>
+            </div>
+            
+            <div class="mt-8 text-center bg-white/10 p-4 rounded-lg backdrop-blur-sm">
+                <p class="text-sm italic">Nota: El almuerzo base no incluye ensaladas ni bebestibles, pero puedes consultar por nuestro menú complementario.</p>
             </div>
         </div>
     </section>
@@ -313,12 +370,21 @@
                             <input type="text" id="form-name" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-brand-red" placeholder="Ej: María Pérez" required>
                         </div>
                         <div class="mb-4">
-                            <label class="block text-sm font-bold mb-2">Curso / Colegio</label>
-                            <input type="text" id="form-course" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-brand-red" placeholder="Ej: 4to Medio A - Colegio San José" required>
+                            <label class="block text-sm font-bold mb-2">Curso / Colegio / Empresa</label>
+                            <input type="text" id="form-course" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-brand-red" placeholder="Ej: 4to Medio A o Empresa SA" required>
                         </div>
                         <div class="mb-4">
                             <label class="block text-sm font-bold mb-2">Teléfono de Contacto</label>
                             <input type="tel" id="form-phone" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-brand-red" placeholder="Ej: +56 9 1234 5678" required>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-bold mb-2">Selecciona tu Menú</label>
+                            <select id="form-menu" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-brand-red bg-white cursor-pointer">
+                                <option value="Menú 1">Menú 1 (Pollo) 🍗</option>
+                                <option value="Menú 2">Menú 2 (Lomo) 🥩</option>
+                                <option value="Menú 3">Menú 3 (Hamburguesa) 🍔</option>
+                                <option value="Personalizado">Otro / Personalizado ✨</option>
+                            </select>
                         </div>
                         <div class="mb-4">
                             <label class="block text-sm font-bold mb-2">Cantidad de Personas (Aprox)</label>
@@ -384,6 +450,15 @@
             }
         });
 
+        // Function to select menu from cards and scroll to contact
+        function selectMenu(menuName) {
+            const select = document.getElementById('form-menu');
+            select.value = menuName;
+            
+            const contactSection = document.getElementById('contacto');
+            contactSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
         // WhatsApp Form Logic
         function sendToWhatsapp(event) {
             event.preventDefault();
@@ -391,10 +466,11 @@
             const name = document.getElementById('form-name').value;
             const course = document.getElementById('form-course').value;
             const phone = document.getElementById('form-phone').value;
+            const menu = document.getElementById('form-menu').value;
             const quantity = document.getElementById('form-quantity').value;
 
-            // Mensaje formateado
-            const message = `Hola! 👋 Me gustaría cotizar un asado para curso.%0A%0A👤 *Nombre:* ${name}%0A🏫 *Curso:* ${course}%0A📱 *Teléfono:* ${phone}%0A👥 *Cantidad:* ${quantity} personas%0A%0AQuedo atento a su respuesta!`;
+            // Mensaje formateado con Emojis
+            const message = `Hola! 👋 Me gustaría cotizar un asado.%0A%0A👤 *Nombre:* ${name}%0A🏢 *Curso/Empresa:* ${course}%0A📱 *Teléfono:* ${phone}%0A🍖 *Menú:* ${menu}%0A👥 *Cantidad:* ${quantity} personas%0A%0AQuedo atento a su respuesta!`;
 
             // Número de destino
             const phoneNumber = "56967083372";
